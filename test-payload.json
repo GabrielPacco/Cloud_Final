@@ -1,0 +1,14 @@
+{
+  "eventType": "ALERT",
+  "greenhouseId": "GH01",
+  "zone": "A",
+  "timestamp": "2025-12-24T17:00:00.000Z",
+  "alertType": "TEST",
+  "severity": "MEDIUM",
+  "metric": "temperature",
+  "value": 25,
+  "message": "Test alert for S3",
+  "actionTaken": "none",
+  "deviceId": "test-device",
+  "receivedAt": "2025-12-24T17:00:00.000Z"
+}

@@ -1,0 +1,12 @@
+{
+  "name": "process-telemetry-lambda",
+  "version": "1.0.0",
+  "description": "Lambda function to process greenhouse telemetry and alerts",
+  "main": "process-telemetry.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.478.0",
+    "@aws-sdk/client-s3": "^3.478.0",
+    "@aws-sdk/client-sns": "^3.478.0",
+    "@aws-sdk/client-cloudwatch": "^3.478.0"
+  }
+}

@@ -1,0 +1,96 @@
+{
+  "greenhouseId": "GH01",
+  "zones": ["A", "B", "C"],
+  "sensors": {
+    "readingIntervalMs": 5000,
+    "metrics": [
+      {
+        "name": "temperature",
+        "unit": "celsius",
+        "min": 15,
+        "max": 35,
+        "normal": 24
+      },
+      {
+        "name": "humidity",
+        "unit": "percent",
+        "min": 40,
+        "max": 80,
+        "normal": 65
+      },
+      {
+        "name": "soilMoisture",
+        "unit": "percent",
+        "min": 20,
+        "max": 70,
+        "normal": 45
+      },
+      {
+        "name": "lightIntensity",
+        "unit": "lux",
+        "min": 5000,
+        "max": 50000,
+        "normal": 12500
+      }
+    ]
+  },
+  "aggregation": {
+    "windowDurationSec": 120
+  },
+  "anomalyDetection": {
+    "rules": [
+      {
+        "type": "THRESHOLD_HIGH",
+        "metric": "temperature",
+        "threshold": 32,
+        "severity": "MEDIUM",
+        "action": "fan=ON"
+      },
+      {
+        "type": "THRESHOLD_HIGH_SUSTAINED",
+        "metric": "temperature",
+        "threshold": 30,
+        "duration": 3,
+        "severity": "HIGH",
+        "action": "fan=ON"
+      },
+      {
+        "type": "THRESHOLD_LOW",
+        "metric": "soilMoisture",
+        "threshold": 30,
+        "severity": "MEDIUM",
+        "action": "irrigation=ON"
+      },
+      {
+        "type": "THRESHOLD_HIGH",
+        "metric": "humidity",
+        "threshold": 85,
+        "severity": "MEDIUM",
+        "action": "vent=OPEN"
+      },
+      {
+        "type": "THRESHOLD_HIGH",
+        "metric": "lightIntensity",
+        "threshold": 50000,
+        "severity": "LOW",
+        "action": "shade=CLOSED"
+      }
+    ],
+    "stuckThreshold": 5,
+    "silentThresholdSec": 60
+  },
+  "buffer": {
+    "maxRetries": 3,
+    "retryDelayMs": [10000, 30000, 60000],
+    "maxBufferSize": 10000
+  },
+  "mqtt": {
+    "endpoint": "a23pl5vax9fmvz-ats.iot.us-east-1.amazonaws.com",
+    "clientId": "fog-gateway-laptop01",
+    "certPath": "./certs/certificate.pem.crt",
+    "keyPath": "./certs/private.pem.key",
+    "caPath": "./certs/AmazonRootCA1.pem",
+    "topicTelemetry": "greenhouse/{greenhouseId}/telemetry",
+    "topicAlerts": "greenhouse/{greenhouseId}/alerts"
+  }
+}

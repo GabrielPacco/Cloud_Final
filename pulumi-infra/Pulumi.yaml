@@ -1,0 +1,6 @@
+name: greenhouse-infra
+runtime: nodejs
+description: Smart Greenhouse Infrastructure - IoT Core, Lambda, DynamoDB, S3
+config:
+  aws:region:
+    value: us-east-1

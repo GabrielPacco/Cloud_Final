@@ -1,0 +1,584 @@
+/**
+ * Pulumi Infrastructure - Smart Greenhouse
+ * Creates: IoT Core, Lambda, DynamoDB, S3, CloudWatch, SNS (optional)
+ */
+
+import * as pulumi from "@pulumi/pulumi";
+import * as aws from "@pulumi/aws";
+
+// Configuration
+const config = new pulumi.Config();
+const greenhouseId = config.get("greenhouseId") || "GH01";
+const zones = config.getObject<string[]>("zones") || ["A", "B", "C"];
+const enableSNS = config.getBoolean("enableSNS") || false;
+const alertEmail = config.get("alertEmail") || "your-email@example.com";
+const retentionDays = config.getNumber("retentionDays") || 7;
+
+console.log(`Deploying infrastructure for greenhouse: ${greenhouseId}`);
+console.log(`Zones: ${zones.join(", ")}`);
+
+// Get current AWS account info
+const current = aws.getCallerIdentity({});
+const currentRegion = aws.getRegion({});
+
+// ============================================
+// 1. DynamoDB Table - Greenhouse State
+// ============================================
+
+const dynamoTable = new aws.dynamodb.Table("greenhouse-state", {
+  name: "GreenhouseState",
+  billingMode: "PAY_PER_REQUEST",
+  hashKey: "PK",
+  rangeKey: "SK",
+  attributes: [
+    { name: "PK", type: "S" },
+    { name: "SK", type: "S" },
+    { name: "timestamp", type: "S" },
+  ],
+  globalSecondaryIndexes: [{
+    name: "GSI-ByTimestamp",
+    hashKey: "PK",
+    rangeKey: "timestamp",
+    projectionType: "ALL",
+  }],
+  ttl: {
+    attributeName: "ttl",
+    enabled: true,
+  },
+  tags: {
+    Project: "SmartGreenhouse",
+    Environment: "dev",
+  },
+});
+
+// ============================================
+// 2. S3 Bucket - Historical Data
+// ============================================
+
+const s3Bucket = new aws.s3.Bucket("greenhouse-history", {
+  forceDestroy: true, // Allow destroy even with objects
+  serverSideEncryptionConfiguration: {
+    rule: {
+      applyServerSideEncryptionByDefault: {
+        sseAlgorithm: "AES256",
+      },
+    },
+  },
+  lifecycleRules: [{
+    enabled: true,
+    transitions: [{
+      days: 90,
+      storageClass: "GLACIER",
+    }],
+    expiration: {
+      days: 365,
+    },
+  }],
+  tags: {
+    Project: "SmartGreenhouse",
+    Environment: "dev",
+  },
+});
+
+// Block public access
+new aws.s3.BucketPublicAccessBlock("greenhouse-history-public-block", {
+  bucket: s3Bucket.id,
+  blockPublicAcls: true,
+  blockPublicPolicy: true,
+  ignorePublicAcls: true,
+  restrictPublicBuckets: true,
+});
+
+// ============================================
+// 3. SNS Topic (Optional) - High Severity Alerts
+// ============================================
+
+let snsTopic: aws.sns.Topic | undefined;
+let snsSubscription: aws.sns.TopicSubscription | undefined;
+
+if (enableSNS) {
+  snsTopic = new aws.sns.Topic("greenhouse-alerts-high", {
+    name: "GreenhouseAlertsHigh",
+    tags: {
+      Project: "SmartGreenhouse",
+      Environment: "dev",
+    },
+  });
+
+  // Create email subscription
+  snsSubscription = new aws.sns.TopicSubscription("greenhouse-alerts-email", {
+    topic: snsTopic.arn,
+    protocol: "email",
+    endpoint: alertEmail,
+  });
+
+  console.log(`SNS Topic created. Subscription email sent to: ${alertEmail}`);
+}
+
+// ============================================
+// 4. Lambda IAM Role
+// ============================================
+
+const lambdaRole = new aws.iam.Role("lambda-execution-role", {
+  assumeRolePolicy: JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [{
+      Action: "sts:AssumeRole",
+      Principal: {
+        Service: "lambda.amazonaws.com",
+      },
+      Effect: "Allow",
+    }],
+  }),
+});
+
+// Attach policies
+new aws.iam.RolePolicyAttachment("lambda-basic-execution", {
+  role: lambdaRole.name,
+  policyArn: "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+});
+
+const lambdaPolicy = new aws.iam.RolePolicy("lambda-custom-policy", {
+  role: lambdaRole.id,
+  policy: pulumi.all([dynamoTable.arn, s3Bucket.arn, snsTopic?.arn]).apply(([dynamoArn, s3Arn, snsArn]) =>
+    JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Effect: "Allow",
+          Action: [
+            "dynamodb:PutItem",
+            "dynamodb:UpdateItem",
+            "dynamodb:GetItem",
+            "dynamodb:Query",
+            "dynamodb:Scan",
+          ],
+          Resource: [dynamoArn, `${dynamoArn}/index/*`],
+        },
+        {
+          Effect: "Allow",
+          Action: ["s3:PutObject", "s3:PutObjectTagging"],
+          Resource: `${s3Arn}/*`,
+        },
+        ...(snsArn ? [{
+          Effect: "Allow",
+          Action: ["sns:Publish"],
+          Resource: snsArn,
+        }] : []),
+        {
+          Effect: "Allow",
+          Action: ["cloudwatch:PutMetricData"],
+          Resource: "*",
+        },
+      ],
+    })
+  ),
+});
+
+// ============================================
+// 5. Lambda Function - Process Telemetry
+// ============================================
+
+const lambdaFunction = new aws.lambda.Function("process-telemetry", {
+  name: "ProcessTelemetry",
+  runtime: "nodejs20.x",
+  handler: "process-telemetry.handler",
+  role: lambdaRole.arn,
+  code: new pulumi.asset.AssetArchive({
+    ".": new pulumi.asset.FileArchive("./lambda"),
+  }),
+  timeout: 10,
+  memorySize: 256,
+  environment: {
+    variables: {
+      DYNAMODB_TABLE: dynamoTable.name,
+      S3_BUCKET: s3Bucket.bucket,
+      SNS_TOPIC_ARN: snsTopic?.arn || "",
+      GREENHOUSE_ID: greenhouseId,
+    },
+  },
+  tags: {
+    Project: "SmartGreenhouse",
+    Environment: "dev",
+  },
+});
+
+// CloudWatch Log Group with retention
+new aws.cloudwatch.LogGroup("lambda-log-group", {
+  name: pulumi.interpolate`/aws/lambda/${lambdaFunction.name}`,
+  retentionInDays: retentionDays,
+  tags: {
+    Project: "SmartGreenhouse",
+  },
+});
+
+// ============================================
+// 6. IoT Core - Thing, Certificate, Policy
+// ============================================
+
+// IoT Policy
+const iotPolicy = new aws.iot.Policy("fog-gateway-policy", {
+  name: "FogGatewayPolicy",
+  policy: pulumi.all([currentRegion, current]).apply(([region, caller]) =>
+    JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [
+        {
+          Effect: "Allow",
+          Action: ["iot:Connect"],
+          Resource: "*",
+        },
+        {
+          Effect: "Allow",
+          Action: ["iot:Publish"],
+          Resource: [
+            `arn:aws:iot:${region.name}:${caller.accountId}:topic/greenhouse/*`,
+          ],
+        },
+        {
+          Effect: "Allow",
+          Action: ["iot:Subscribe", "iot:Receive"],
+          Resource: [
+            `arn:aws:iot:${region.name}:${caller.accountId}:topicfilter/greenhouse/*/commands`,
+          ],
+        },
+      ],
+    })
+  ),
+});
+
+// IoT Thing
+const iotThing = new aws.iot.Thing("fog-gateway-thing", {
+  name: "FogGateway-Laptop01",
+  attributes: {
+    greenhouseId: greenhouseId,
+    deviceType: "fog-gateway",
+  },
+});
+
+// IoT Certificate
+const iotCertificate = new aws.iot.Certificate("fog-gateway-cert", {
+  active: true,
+});
+
+// Attach certificate to thing
+new aws.iot.ThingPrincipalAttachment("thing-cert-attachment", {
+  thing: iotThing.name,
+  principal: iotCertificate.arn,
+});
+
+// Attach policy to certificate
+new aws.iot.PolicyAttachment("policy-cert-attachment", {
+  policy: iotPolicy.name,
+  target: iotCertificate.arn,
+});
+
+// ============================================
+// 7. IoT Rules - Route to Lambda
+// ============================================
+
+// IAM Role for IoT Rule
+const iotRuleRole = new aws.iam.Role("iot-rule-role", {
+  assumeRolePolicy: JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [{
+      Action: "sts:AssumeRole",
+      Principal: {
+        Service: "iot.amazonaws.com",
+      },
+      Effect: "Allow",
+    }],
+  }),
+});
+
+new aws.iam.RolePolicy("iot-rule-policy", {
+  role: iotRuleRole.id,
+  policy: lambdaFunction.arn.apply(arn =>
+    JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [{
+        Effect: "Allow",
+        Action: ["lambda:InvokeFunction"],
+        Resource: arn,
+      }],
+    })
+  ),
+});
+
+// Rule 1: Process Telemetry
+const telemetryRule = new aws.iot.TopicRule("process-telemetry-rule", {
+  name: "ProcessTelemetryRule",
+  enabled: true,
+  sql: "SELECT * FROM 'greenhouse/+/telemetry'",
+  sqlVersion: "2016-03-23",
+  lambdas: [{
+    functionArn: lambdaFunction.arn,
+  }],
+});
+
+// Grant IoT permission to invoke Lambda
+new aws.lambda.Permission("iot-invoke-telemetry-lambda", {
+  action: "lambda:InvokeFunction",
+  function: lambdaFunction.name,
+  principal: "iot.amazonaws.com",
+  sourceArn: telemetryRule.arn,
+});
+
+// Rule 2: Process Alerts
+const alertsRule = new aws.iot.TopicRule("process-alerts-rule", {
+  name: "ProcessAlertsRule",
+  enabled: true,
+  sql: "SELECT * FROM 'greenhouse/+/alerts'",
+  sqlVersion: "2016-03-23",
+  lambdas: [{
+    functionArn: lambdaFunction.arn,
+  }],
+});
+
+new aws.lambda.Permission("iot-invoke-alerts-lambda", {
+  action: "lambda:InvokeFunction",
+  function: lambdaFunction.name,
+  principal: "iot.amazonaws.com",
+  sourceArn: alertsRule.arn,
+});
+
+// Rule 3: High Severity Alerts to SNS (optional)
+if (enableSNS && snsTopic) {
+  new aws.iot.TopicRule("high-alerts-sns-rule", {
+    name: "HighAlertsSNSRule",
+    enabled: true,
+    sql: "SELECT * FROM 'greenhouse/+/alerts' WHERE severity = 'HIGH'",
+    sqlVersion: "2016-03-23",
+    sns: [{
+      targetArn: snsTopic.arn,
+      roleArn: iotRuleRole.arn,
+    }],
+  });
+
+  new aws.iam.RolePolicy("iot-sns-policy", {
+    role: iotRuleRole.id,
+    policy: snsTopic.arn.apply(arn =>
+      JSON.stringify({
+        Version: "2012-10-17",
+        Statement: [{
+          Effect: "Allow",
+          Action: ["sns:Publish"],
+          Resource: arn,
+        }],
+      })
+    ),
+  });
+}
+
+// ============================================
+// 8. CloudWatch Metrics & Alarms
+// ============================================
+
+// Custom metric alarm for Lambda errors
+new aws.cloudwatch.MetricAlarm("lambda-error-alarm", {
+  name: "ProcessTelemetry-HighErrorRate",
+  comparisonOperator: "GreaterThanThreshold",
+  evaluationPeriods: 1,
+  metricName: "Errors",
+  namespace: "AWS/Lambda",
+  period: 300,
+  statistic: "Sum",
+  threshold: 5,
+  alarmDescription: "Alert when Lambda errors exceed 5 in 5 minutes",
+  dimensions: {
+    FunctionName: lambdaFunction.name,
+  },
+  tags: {
+    Project: "SmartGreenhouse",
+  },
+});
+
+// ============================================
+// 9. API Gateway - REST API
+// ============================================
+
+// Lambda function for API queries
+const apiLambda = new aws.lambda.Function("api-query", {
+  name: "GreenhouseAPI",
+  runtime: "nodejs20.x",
+  handler: "api-query.handler",
+  role: lambdaRole.arn,
+  code: new pulumi.asset.AssetArchive({
+    ".": new pulumi.asset.FileArchive("./lambda"),
+  }),
+  environment: {
+    variables: {
+      DYNAMODB_TABLE: dynamoTable.name,
+      GREENHOUSE_ID: greenhouseId,
+    },
+  },
+  timeout: 15,
+  memorySize: 256,
+  tags: {
+    Project: "SmartGreenhouse",
+  },
+});
+
+// API Gateway REST API
+const api = new aws.apigateway.RestApi("greenhouse-api", {
+  name: "GreenhouseAPI",
+  description: "REST API for Smart Greenhouse",
+  tags: {
+    Project: "SmartGreenhouse",
+  },
+});
+
+// /health resource
+const healthResource = new aws.apigateway.Resource("health-resource", {
+  restApi: api.id,
+  parentId: api.rootResourceId,
+  pathPart: "health",
+});
+
+const healthMethod = new aws.apigateway.Method("health-method", {
+  restApi: api.id,
+  resourceId: healthResource.id,
+  httpMethod: "GET",
+  authorization: "NONE",
+});
+
+const healthIntegration = new aws.apigateway.Integration("health-integration", {
+  restApi: api.id,
+  resourceId: healthResource.id,
+  httpMethod: healthMethod.httpMethod,
+  integrationHttpMethod: "POST",
+  type: "AWS_PROXY",
+  uri: apiLambda.invokeArn,
+});
+
+// /zones resource
+const zonesResource = new aws.apigateway.Resource("zones-resource", {
+  restApi: api.id,
+  parentId: api.rootResourceId,
+  pathPart: "zones",
+});
+
+const zonesMethod = new aws.apigateway.Method("zones-method", {
+  restApi: api.id,
+  resourceId: zonesResource.id,
+  httpMethod: "GET",
+  authorization: "NONE",
+});
+
+const zonesIntegration = new aws.apigateway.Integration("zones-integration", {
+  restApi: api.id,
+  resourceId: zonesResource.id,
+  httpMethod: zonesMethod.httpMethod,
+  integrationHttpMethod: "POST",
+  type: "AWS_PROXY",
+  uri: apiLambda.invokeArn,
+});
+
+// /alerts resource
+const alertsResource = new aws.apigateway.Resource("alerts-resource", {
+  restApi: api.id,
+  parentId: api.rootResourceId,
+  pathPart: "alerts",
+});
+
+const alertsMethod = new aws.apigateway.Method("alerts-method", {
+  restApi: api.id,
+  resourceId: alertsResource.id,
+  httpMethod: "GET",
+  authorization: "NONE",
+});
+
+const alertsIntegration = new aws.apigateway.Integration("alerts-integration", {
+  restApi: api.id,
+  resourceId: alertsResource.id,
+  httpMethod: alertsMethod.httpMethod,
+  integrationHttpMethod: "POST",
+  type: "AWS_PROXY",
+  uri: apiLambda.invokeArn,
+});
+
+// Lambda permission for API Gateway
+const apiLambdaPermission = new aws.lambda.Permission("api-lambda-permission", {
+  action: "lambda:InvokeFunction",
+  function: apiLambda.name,
+  principal: "apigateway.amazonaws.com",
+  sourceArn: pulumi.interpolate`${api.executionArn}/*/*`,
+});
+
+// API Deployment
+const deployment = new aws.apigateway.Deployment("api-deployment", {
+  restApi: api.id,
+  stageName: "prod",
+}, {
+  dependsOn: [
+    healthIntegration,
+    zonesIntegration,
+    alertsIntegration,
+  ],
+});
+
+// ============================================
+// 10. Outputs
+// ============================================
+
+// Get IoT endpoint
+const iotEndpoint = aws.iot.getEndpoint({
+  endpointType: "iot:Data-ATS",
+});
+
+// Export outputs
+export const iotEndpointAddress = iotEndpoint.then(e => e.endpointAddress);
+export const certificatePem = iotCertificate.certificatePem;
+export const privateKey = iotCertificate.privateKey;
+export const publicKey = iotCertificate.publicKey;
+export const dynamoTableName = dynamoTable.name;
+export const s3BucketName = s3Bucket.bucket;
+export const lambdaFunctionArn = lambdaFunction.arn;
+export const lambdaFunctionName = lambdaFunction.name;
+export const snsTopicArn = snsTopic?.arn || "Not enabled";
+export const iotThingName = iotThing.name;
+export const apiUrl = pulumi.interpolate`https://${api.id}.execute-api.${currentRegion.then(r => r.name)}.amazonaws.com/prod`;
+export const apiLambdaArn = apiLambda.arn;
+
+// Instructions
+export const setupInstructions = pulumi.interpolate`
+========================================
+DEPLOYMENT COMPLETE
+========================================
+
+Next Steps:
+
+1. Save IoT certificates to fog-gateway/certs/:
+
+   Run these commands from the project root:
+
+   mkdir -p fog-gateway/certs
+   curl -o fog-gateway/certs/AmazonRootCA1.pem https://www.amazontrust.com/repository/AmazonRootCA1.pem
+   pulumi stack output certificatePem --show-secrets > fog-gateway/certs/certificate.pem.crt
+   pulumi stack output privateKey --show-secrets > fog-gateway/certs/private.pem.key
+
+2. Update fog-gateway/config.json:
+
+   Set mqtt.endpoint to: ${iotEndpointAddress}
+
+3. Install dependencies and run Fog Gateway:
+
+   cd fog-gateway
+   npm install
+   node src/index.js
+
+4. Monitor in AWS Console:
+   - IoT Core Test Client: Subscribe to greenhouse/#
+   - DynamoDB: Check GreenhouseState table
+   - CloudWatch Logs: /aws/lambda/${lambdaFunction.name}
+   - S3: ${s3Bucket.bucket}
+
+Resources created:
+- DynamoDB Table: ${dynamoTable.name}
+- S3 Bucket: ${s3Bucket.bucket}
+- Lambda Function: ${lambdaFunction.name}
+- IoT Thing: ${iotThing.name}
+- SNS Topic: ${snsTopic?.name || "Not enabled"}
+
+PASSPHRASE: Remember to set PULUMI_CONFIG_PASSPHRASE=greenhouse2024 for future operations
+`;

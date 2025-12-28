@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+bin/
+dist/
+build/
+
+# Pulumi
+.pulumi/
+Pulumi.*.yaml
+
+# Certificates and keys
+*.pem
+*.crt
+*.key
+certs/
+
+# Local databases
+*.db
+*.sqlite
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# AWS
+.aws/
+
+# Temporary files
+tmp/
+temp/
+
+# Evidence/screenshots (optional, depends on repo policy)
+evidencias/
+
+# Documentation (excluded from repo)
+docs/
+
+# Claude Code
+.claude/

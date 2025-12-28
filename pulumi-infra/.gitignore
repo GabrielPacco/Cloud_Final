@@ -1,0 +1,8 @@
+node_modules/
+bin/
+lambda/node_modules/
+.pulumi/
+Pulumi.*.yaml
+*.pem
+*.crt
+*.key

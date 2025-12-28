@@ -1,0 +1,13 @@
+{
+  "name": "greenhouse-visualizer",
+  "version": "1.0.0",
+  "description": "Dashboard de visualización para invernadero inteligente",
+  "scripts": {
+    "visualizar": "node visualizar.js",
+    "dashboard": "node visualizar.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.478.0",
+    "@aws-sdk/util-dynamodb": "^3.478.0"
+  }
+}

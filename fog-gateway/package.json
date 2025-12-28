@@ -1,0 +1,33 @@
+{
+  "name": "greenhouse-fog-gateway",
+  "version": "1.0.0",
+  "description": "Fog Gateway for Smart Greenhouse - Local processing and AWS MQTT publisher",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "jest --coverage",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "aws-iot-device-sdk": "^2.2.13",
+    "better-sqlite3": "^9.2.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "src/**/*.js",
+      "!src/index.js"
+    ]
+  },
+  "keywords": [
+    "iot",
+    "fog-computing",
+    "greenhouse"
+  ],
+  "author": "",
+  "license": "MIT"
+}

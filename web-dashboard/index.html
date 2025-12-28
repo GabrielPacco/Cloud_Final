@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de Control - Invernadero Inteligente</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌱 Panel de Control - Invernadero Inteligente</h1>
+      <p class="subtitle">Monitoreo en tiempo real - Invernadero GH01</p>
+    </header>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-label">Estado API:</span>
+        <span id="api-status" class="status-value">Conectando...</span>
+      </div>
+      <div class="status-item">
+        <span class="status-label">Última actualización:</span>
+        <span id="last-update" class="status-value">-</span>
+      </div>
+    </div>
+
+    <main>
+      <!-- Zones Section -->
+      <section class="zones-section">
+        <h2>📊 Estado de las Zonas</h2>
+        <div id="zones-container" class="zones-grid">
+          <div class="loading">Cargando datos...</div>
+        </div>
+      </section>
+
+      <!-- Alerts Section -->
+      <section class="alerts-section">
+        <h2>🚨 Alertas Recientes</h2>
+        <div id="alerts-container" class="alerts-list">
+          <div class="loading">Cargando alertas...</div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>Desarrollado con AWS Serverless (Lambda + DynamoDB + IoT Core + API Gateway)</p>
+      <button id="refresh-btn" class="refresh-btn">🔄 Actualizar Datos</button>
+    </footer>
+  </div>
+
+  <!-- Configuration Modal -->
+  <div id="config-modal" class="modal">
+    <div class="modal-content">
+      <h3>⚙️ Configuración</h3>
+      <p>Ingresa la URL de tu API Gateway:</p>
+      <input type="text" id="api-url-input" placeholder="https://xxxxx.execute-api.us-east-1.amazonaws.com/prod">
+      <button id="save-config-btn" class="btn-primary">Guardar</button>
+      <p class="help-text">
+        Obtén la URL ejecutando: <code>pulumi stack output apiUrl</code>
+      </p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
