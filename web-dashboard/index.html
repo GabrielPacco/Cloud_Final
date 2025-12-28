@@ -3,63 +3,170 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Panel de Control - Invernadero Inteligente</title>
+  <title>Dashboard Invernadero Inteligente</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div class="container">
+    <!-- Header -->
     <header>
-      <h1>🌱 Panel de Control - Invernadero Inteligente</h1>
-      <p class="subtitle">Monitoreo en tiempo real - Invernadero GH01</p>
+      <div class="header-content">
+        <div class="header-left">
+          <h1>🌱 Invernadero Inteligente</h1>
+          <p class="subtitle">Sistema de Monitoreo IoT en Tiempo Real</p>
+        </div>
+        <div class="header-right">
+          <button id="theme-toggle" class="icon-btn" title="Cambiar tema">🌓</button>
+          <button id="config-btn" class="icon-btn" title="Configuración">⚙️</button>
+        </div>
+      </div>
     </header>
 
+    <!-- Status Bar -->
     <div class="status-bar">
       <div class="status-item">
-        <span class="status-label">Estado API:</span>
-        <span id="api-status" class="status-value">Conectando...</span>
+        <span class="status-icon">🔌</span>
+        <div>
+          <div class="status-label">Estado del Sistema</div>
+          <div id="api-status" class="status-value">Conectando...</div>
+        </div>
       </div>
       <div class="status-item">
-        <span class="status-label">Última actualización:</span>
-        <span id="last-update" class="status-value">-</span>
+        <span class="status-icon">🕐</span>
+        <div>
+          <div class="status-label">Última Actualización</div>
+          <div id="last-update" class="status-value">-</div>
+        </div>
+      </div>
+      <div class="status-item">
+        <span class="status-icon">📊</span>
+        <div>
+          <div class="status-label">Zonas Activas</div>
+          <div id="active-zones" class="status-value">-</div>
+        </div>
+      </div>
+      <div class="status-item">
+        <span class="status-icon">🚨</span>
+        <div>
+          <div class="status-label">Alertas Activas</div>
+          <div id="alert-count" class="status-value">-</div>
+        </div>
       </div>
     </div>
 
+    <!-- Main Content -->
     <main>
+      <!-- Statistics Overview -->
+      <section class="stats-section">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon temp">🌡️</div>
+            <div class="stat-content">
+              <div class="stat-label">Temperatura Promedio</div>
+              <div id="avg-temp" class="stat-value">--°C</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon humidity">💧</div>
+            <div class="stat-content">
+              <div class="stat-label">Humedad Promedio</div>
+              <div id="avg-humidity" class="stat-value">--%</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon soil">🌱</div>
+            <div class="stat-content">
+              <div class="stat-label">Humedad Suelo Promedio</div>
+              <div id="avg-soil" class="stat-value">--%</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon light">☀️</div>
+            <div class="stat-content">
+              <div class="stat-label">Intensidad de Luz Promedio</div>
+              <div id="avg-light" class="stat-value">-- lux</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Zones Section -->
       <section class="zones-section">
-        <h2>📊 Estado de las Zonas</h2>
+        <div class="section-header">
+          <h2>📊 Monitoreo por Zonas</h2>
+          <button id="refresh-btn" class="refresh-btn">
+            <span class="refresh-icon">🔄</span> Actualizar
+          </button>
+        </div>
         <div id="zones-container" class="zones-grid">
-          <div class="loading">Cargando datos...</div>
+          <!-- Loading Skeleton -->
+          <div class="zone-card skeleton">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-content"></div>
+          </div>
+          <div class="zone-card skeleton">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-content"></div>
+          </div>
+          <div class="zone-card skeleton">
+            <div class="skeleton-header"></div>
+            <div class="skeleton-content"></div>
+          </div>
         </div>
       </section>
 
       <!-- Alerts Section -->
       <section class="alerts-section">
-        <h2>🚨 Alertas Recientes</h2>
+        <div class="section-header">
+          <h2>🚨 Registro de Alertas</h2>
+          <div class="alert-filters">
+            <button class="filter-btn active" data-filter="ALL">Todas</button>
+            <button class="filter-btn" data-filter="HIGH">Alta</button>
+            <button class="filter-btn" data-filter="MEDIUM">Media</button>
+            <button class="filter-btn" data-filter="LOW">Baja</button>
+          </div>
+        </div>
         <div id="alerts-container" class="alerts-list">
           <div class="loading">Cargando alertas...</div>
         </div>
       </section>
     </main>
 
+    <!-- Footer -->
     <footer>
-      <p>Desarrollado con AWS Serverless (Lambda + DynamoDB + IoT Core + API Gateway)</p>
-      <button id="refresh-btn" class="refresh-btn">🔄 Actualizar Datos</button>
+      <p>
+        <strong>Smart Greenhouse IoT System</strong> |
+        Powered by AWS Serverless Architecture
+      </p>
+      <p class="tech-stack">
+        Lambda • DynamoDB • IoT Core • API Gateway • S3 • CloudWatch
+      </p>
     </footer>
   </div>
 
   <!-- Configuration Modal -->
   <div id="config-modal" class="modal">
     <div class="modal-content">
-      <h3>⚙️ Configuración</h3>
-      <p>Ingresa la URL de tu API Gateway:</p>
-      <input type="text" id="api-url-input" placeholder="https://xxxxx.execute-api.us-east-1.amazonaws.com/prod">
-      <button id="save-config-btn" class="btn-primary">Guardar</button>
-      <p class="help-text">
-        Obtén la URL ejecutando: <code>pulumi stack output apiUrl</code>
-      </p>
+      <div class="modal-header">
+        <h3>⚙️ Configuración del Dashboard</h3>
+        <button class="close-modal">×</button>
+      </div>
+      <div class="modal-body">
+        <p>Configura la URL de tu API Gateway para conectar con el backend:</p>
+        <input type="text" id="api-url-input" placeholder="https://xxxxx.execute-api.us-east-1.amazonaws.com/prod">
+        <div class="help-text">
+          <strong>💡 Obtener URL:</strong>
+          <code>cd pulumi-infra && pulumi stack output apiUrl</code>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="save-config-btn" class="btn-primary">Guardar Configuración</button>
+      </div>
     </div>
   </div>
+
+  <!-- Toast Notifications -->
+  <div id="toast-container"></div>
 
   <script src="app.js"></script>
 </body>
