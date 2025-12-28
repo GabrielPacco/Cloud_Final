@@ -518,7 +518,143 @@ const deployment = new aws.apigateway.Deployment("api-deployment", {
 });
 
 // ============================================
-// 10. Outputs
+// 10. S3 Website Hosting - Dashboard
+// ============================================
+
+// S3 Bucket for static website hosting
+const dashboardBucket = new aws.s3.Bucket("greenhouse-dashboard", {
+  website: {
+    indexDocument: "index.html",
+    errorDocument: "index.html",
+  },
+  forceDestroy: true,
+  tags: {
+    Project: "SmartGreenhouse",
+    Environment: "dev",
+  },
+});
+
+// Block public access configuration (allow public read for website)
+new aws.s3.BucketPublicAccessBlock("dashboard-public-access", {
+  bucket: dashboardBucket.id,
+  blockPublicAcls: false,
+  blockPublicPolicy: false,
+  ignorePublicAcls: false,
+  restrictPublicBuckets: false,
+});
+
+// Bucket policy to allow public read access
+const dashboardBucketPolicy = new aws.s3.BucketPolicy("dashboard-bucket-policy", {
+  bucket: dashboardBucket.bucket,
+  policy: dashboardBucket.arn.apply(arn =>
+    JSON.stringify({
+      Version: "2012-10-17",
+      Statement: [{
+        Effect: "Allow",
+        Principal: "*",
+        Action: ["s3:GetObject"],
+        Resource: `${arn}/*`,
+      }],
+    })
+  ),
+});
+
+// Upload dashboard files to S3
+const indexHtml = new aws.s3.BucketObject("index.html", {
+  bucket: dashboardBucket.bucket,
+  source: new pulumi.asset.FileAsset("../web-dashboard/index.html"),
+  contentType: "text/html",
+  acl: "public-read",
+});
+
+const appJs = new aws.s3.BucketObject("app.js", {
+  bucket: dashboardBucket.bucket,
+  source: new pulumi.asset.FileAsset("../web-dashboard/app.js"),
+  contentType: "application/javascript",
+  acl: "public-read",
+});
+
+const stylesCss = new aws.s3.BucketObject("styles.css", {
+  bucket: dashboardBucket.bucket,
+  source: new pulumi.asset.FileAsset("../web-dashboard/styles.css"),
+  contentType: "text/css",
+  acl: "public-read",
+});
+
+// ============================================
+// 11. CloudWatch Dashboard (Optional)
+// ============================================
+
+const cloudwatchDashboard = new aws.cloudwatch.Dashboard("greenhouse-dashboard", {
+  dashboardName: "SmartGreenhouse-Monitoring",
+  dashboardBody: pulumi.all([lambdaFunction.name, dynamoTable.name]).apply(([fnName, tableName]) =>
+    JSON.stringify({
+      widgets: [
+        {
+          type: "metric",
+          properties: {
+            metrics: [
+              ["AWS/Lambda", "Invocations", { stat: "Sum", label: "Lambda Invocations" }],
+              [".", "Errors", { stat: "Sum", label: "Lambda Errors" }],
+              [".", "Duration", { stat: "Average", label: "Avg Duration (ms)" }],
+            ],
+            period: 300,
+            stat: "Average",
+            region: "us-east-1",
+            title: "Lambda Metrics - ProcessTelemetry",
+            yAxis: {
+              left: { min: 0 },
+            },
+          },
+        },
+        {
+          type: "metric",
+          properties: {
+            metrics: [
+              ["AWS/DynamoDB", "UserErrors", { stat: "Sum" }],
+              [".", "SystemErrors", { stat: "Sum" }],
+              [".", "ConsumedWriteCapacityUnits", { stat: "Sum" }],
+            ],
+            period: 300,
+            stat: "Sum",
+            region: "us-east-1",
+            title: "DynamoDB Metrics",
+            yAxis: {
+              left: { min: 0 },
+            },
+          },
+        },
+        {
+          type: "metric",
+          properties: {
+            metrics: [
+              ["AWS/IoT", "PublishIn.Success", { stat: "Sum", label: "Messages Received" }],
+              [".", "RulesExecuted", { stat: "Sum", label: "Rules Executed" }],
+            ],
+            period: 300,
+            stat: "Sum",
+            region: "us-east-1",
+            title: "IoT Core Metrics",
+            yAxis: {
+              left: { min: 0 },
+            },
+          },
+        },
+        {
+          type: "log",
+          properties: {
+            query: pulumi.interpolate`SOURCE '/aws/lambda/${fnName}'\n| fields @timestamp, @message\n| filter @message like /ERROR/\n| sort @timestamp desc\n| limit 20`,
+            region: "us-east-1",
+            title: "Recent Lambda Errors",
+          },
+        },
+      ],
+    })
+  ),
+});
+
+// ============================================
+// 12. Outputs
 // ============================================
 
 // Get IoT endpoint
@@ -539,6 +675,9 @@ export const snsTopicArn = snsTopic?.arn || "Not enabled";
 export const iotThingName = iotThing.name;
 export const apiUrl = pulumi.interpolate`https://${api.id}.execute-api.${currentRegion.then(r => r.name)}.amazonaws.com/prod`;
 export const apiLambdaArn = apiLambda.arn;
+export const dashboardUrl = pulumi.interpolate`http://${dashboardBucket.websiteEndpoint}`;
+export const dashboardBucketName = dashboardBucket.bucket;
+export const cloudwatchDashboardUrl = pulumi.interpolate`https://console.aws.amazon.com/cloudwatch/home?region=${currentRegion.then(r => r.name)}#dashboards:name=SmartGreenhouse-Monitoring`;
 
 // Instructions
 export const setupInstructions = pulumi.interpolate`
@@ -567,16 +706,28 @@ Next Steps:
    npm install
    node src/index.js
 
-4. Monitor in AWS Console:
+4. Access Web Dashboard:
+
+   ${dashboardUrl}
+
+   Note: Configure the API URL in the dashboard settings to: ${apiUrl}
+
+5. Monitor in AWS Console:
+   - Web Dashboard (S3): ${dashboardUrl}
+   - CloudWatch Dashboard: ${cloudwatchDashboardUrl}
    - IoT Core Test Client: Subscribe to greenhouse/#
    - DynamoDB: Check GreenhouseState table
    - CloudWatch Logs: /aws/lambda/${lambdaFunction.name}
-   - S3: ${s3Bucket.bucket}
+   - S3 Historical Data: ${s3Bucket.bucket}
 
 Resources created:
 - DynamoDB Table: ${dynamoTable.name}
-- S3 Bucket: ${s3Bucket.bucket}
-- Lambda Function: ${lambdaFunction.name}
+- S3 Bucket (Historical): ${s3Bucket.bucket}
+- S3 Bucket (Dashboard): ${dashboardBucket.bucket}
+- Lambda Functions: ${lambdaFunction.name}, GreenhouseAPI
+- API Gateway: ${apiUrl}
+- Web Dashboard: ${dashboardUrl}
+- CloudWatch Dashboard: SmartGreenhouse-Monitoring
 - IoT Thing: ${iotThing.name}
 - SNS Topic: ${snsTopic?.name || "Not enabled"}
 
