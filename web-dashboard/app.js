@@ -9,7 +9,7 @@ let API_BASE_URL = localStorage.getItem(CONFIG_KEY);
 let currentAlerts = [];
 let currentFilter = 'ALL';
 
-// DOM Elements
+// Elementos DOM
 const zonesContainer = document.getElementById('zones-container');
 const alertsContainer = document.getElementById('alerts-container');
 const apiStatus = document.getElementById('api-status');
@@ -24,15 +24,15 @@ const themeToggle = document.getElementById('theme-toggle');
 const configBtn = document.getElementById('config-btn');
 const closeModalBtn = document.querySelector('.close-modal');
 
-// Statistics elements
+// Elementos de estadísticas
 const avgTemp = document.getElementById('avg-temp');
 const avgHumidity = document.getElementById('avg-humidity');
 const avgSoil = document.getElementById('avg-soil');
 const avgLight = document.getElementById('avg-light');
 
-// Initialize
+// Inicializar
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize theme
+  // Inicializar tema
   initTheme();
 
   if (!API_BASE_URL) {
@@ -41,14 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
     loadData();
   }
 
-  // Event listeners
+  // Escuchadores de eventos
   refreshBtn.addEventListener('click', loadData);
   saveConfigBtn.addEventListener('click', saveConfig);
   themeToggle.addEventListener('click', toggleTheme);
   configBtn.addEventListener('click', showConfigModal);
   closeModalBtn.addEventListener('click', hideConfigModal);
 
-  // Alert filter buttons
+  // Botones de filtro de alertas
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       currentFilter = e.target.dataset.filter;
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Auto-refresh every 30 seconds
+  // Auto-refrescar cada 30 segundos
   setInterval(loadData, 30000);
 });
 
@@ -88,7 +88,7 @@ function toggleTheme() {
  */
 function updateThemeIcon(theme) {
   if (theme === 'dark') {
-    // Sun icon for dark mode
+    // Icono de sol para modo oscuro
     themeToggle.innerHTML = `
       <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="12" cy="12" r="5"/>
@@ -103,7 +103,7 @@ function updateThemeIcon(theme) {
       </svg>
     `;
   } else {
-    // Moon icon for light mode
+    // Icono de luna para modo claro
     themeToggle.innerHTML = `
       <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
@@ -169,27 +169,27 @@ async function loadData() {
     refreshBtn.disabled = true;
     refreshBtn.style.opacity = '0.6';
 
-    // Load zones and alerts in parallel
+    // Cargar zonas y alertas en paralelo
     const [zonesData, alertsData] = await Promise.all([
       loadZones(),
       loadAlerts()
     ]);
 
-    // Update statistics
+    // Actualizar estadísticas
     updateStatistics(zonesData);
 
-    // Update status bar
+    // Actualizar barra de estado
     apiStatus.textContent = 'Conectado';
     apiStatus.style.color = '#28a745';
     lastUpdate.textContent = new Date().toLocaleTimeString('es-ES');
 
-    // Count active zones
+    // Contar zonas activas
     const activeZonesCount = zonesData.filter(z =>
       z.metrics && Object.keys(z.metrics).length > 0
     ).length;
     activeZones.textContent = `${activeZonesCount}/${zonesData.length}`;
 
-    // Count active alerts
+    // Contar alertas activas
     const activeAlertsCount = alertsData.filter(a =>
       a.severity === 'HIGH' || a.severity === 'MEDIUM'
     ).length;
@@ -516,10 +516,10 @@ function showToast(message, type = 'info') {
   const container = document.getElementById('toast-container');
   container.appendChild(toast);
 
-  // Trigger animation
+  // Activar animación
   setTimeout(() => toast.classList.add('show'), 10);
 
-  // Auto remove after 3 seconds
+  // Auto-eliminar después de 3 segundos
   setTimeout(() => {
     toast.classList.remove('show');
     setTimeout(() => toast.remove(), 300);

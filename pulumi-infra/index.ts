@@ -1,12 +1,12 @@
 /**
- * Pulumi Infrastructure - Smart Greenhouse
- * Creates: IoT Core, Lambda, DynamoDB, S3, CloudWatch, SNS (optional)
+ * Infraestructura Pulumi - Invernadero Inteligente
+ * Crea: IoT Core, Lambda, DynamoDB, S3, CloudWatch
  */
 
 import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 
-// Configuration
+// Configuración
 const config = new pulumi.Config();
 const greenhouseId = config.get("greenhouseId") || "GH01";
 const zones = config.getObject<string[]>("zones") || ["A", "B", "C"];
@@ -17,12 +17,12 @@ const retentionDays = config.getNumber("retentionDays") || 7;
 console.log(`Deploying infrastructure for greenhouse: ${greenhouseId}`);
 console.log(`Zones: ${zones.join(", ")}`);
 
-// Get current AWS account info
+// Obtener información de la cuenta AWS actual
 const current = aws.getCallerIdentity({});
 const currentRegion = aws.getRegion({});
 
 // ============================================
-// 1. DynamoDB Table - Greenhouse State
+// 1. Tabla DynamoDB - Estado del Invernadero
 // ============================================
 
 const dynamoTable = new aws.dynamodb.Table("greenhouse-state", {
@@ -52,11 +52,11 @@ const dynamoTable = new aws.dynamodb.Table("greenhouse-state", {
 });
 
 // ============================================
-// 2. S3 Bucket - Historical Data
+// 2. Bucket S3 - Datos Históricos
 // ============================================
 
 const s3Bucket = new aws.s3.Bucket("greenhouse-history", {
-  forceDestroy: true, // Allow destroy even with objects
+  forceDestroy: true, // Permitir destrucción incluso con objetos
   serverSideEncryptionConfiguration: {
     rule: {
       applyServerSideEncryptionByDefault: {
@@ -80,7 +80,7 @@ const s3Bucket = new aws.s3.Bucket("greenhouse-history", {
   },
 });
 
-// Block public access
+// Bloquear acceso público
 new aws.s3.BucketPublicAccessBlock("greenhouse-history-public-block", {
   bucket: s3Bucket.id,
   blockPublicAcls: true,
@@ -90,7 +90,7 @@ new aws.s3.BucketPublicAccessBlock("greenhouse-history-public-block", {
 });
 
 // ============================================
-// 3. SNS Topic (Optional) - High Severity Alerts
+// 3. Topic SNS (Opcional) - Alertas de Alta Severidad
 // ============================================
 
 let snsTopic: aws.sns.Topic | undefined;
@@ -105,7 +105,7 @@ if (enableSNS) {
     },
   });
 
-  // Create email subscription
+  // Crear suscripción por email
   snsSubscription = new aws.sns.TopicSubscription("greenhouse-alerts-email", {
     topic: snsTopic.arn,
     protocol: "email",
@@ -116,7 +116,7 @@ if (enableSNS) {
 }
 
 // ============================================
-// 4. Lambda IAM Role
+// 4. Rol IAM para Lambda
 // ============================================
 
 const lambdaRole = new aws.iam.Role("lambda-execution-role", {
@@ -132,7 +132,7 @@ const lambdaRole = new aws.iam.Role("lambda-execution-role", {
   }),
 });
 
-// Attach policies
+// Adjuntar políticas
 new aws.iam.RolePolicyAttachment("lambda-basic-execution", {
   role: lambdaRole.name,
   policyArn: "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
@@ -176,7 +176,7 @@ const lambdaPolicy = new aws.iam.RolePolicy("lambda-custom-policy", {
 });
 
 // ============================================
-// 5. Lambda Function - Process Telemetry
+// 5. Función Lambda - Procesar Telemetría
 // ============================================
 
 const lambdaFunction = new aws.lambda.Function("process-telemetry", {
@@ -203,7 +203,7 @@ const lambdaFunction = new aws.lambda.Function("process-telemetry", {
   },
 });
 
-// CloudWatch Log Group with retention
+// Grupo de Logs CloudWatch con retención
 new aws.cloudwatch.LogGroup("lambda-log-group", {
   name: pulumi.interpolate`/aws/lambda/${lambdaFunction.name}`,
   retentionInDays: retentionDays,
@@ -213,10 +213,10 @@ new aws.cloudwatch.LogGroup("lambda-log-group", {
 });
 
 // ============================================
-// 6. IoT Core - Thing, Certificate, Policy
+// 6. IoT Core - Thing, Certificado, Política
 // ============================================
 
-// IoT Policy
+// Política IoT
 const iotPolicy = new aws.iot.Policy("fog-gateway-policy", {
   name: "FogGatewayPolicy",
   policy: pulumi.all([currentRegion, current]).apply(([region, caller]) =>
@@ -247,7 +247,7 @@ const iotPolicy = new aws.iot.Policy("fog-gateway-policy", {
   ),
 });
 
-// IoT Thing
+// Thing IoT
 const iotThing = new aws.iot.Thing("fog-gateway-thing", {
   name: "FogGateway-Laptop01",
   attributes: {
@@ -256,28 +256,28 @@ const iotThing = new aws.iot.Thing("fog-gateway-thing", {
   },
 });
 
-// IoT Certificate
+// Certificado IoT
 const iotCertificate = new aws.iot.Certificate("fog-gateway-cert", {
   active: true,
 });
 
-// Attach certificate to thing
+// Adjuntar certificado al thing
 new aws.iot.ThingPrincipalAttachment("thing-cert-attachment", {
   thing: iotThing.name,
   principal: iotCertificate.arn,
 });
 
-// Attach policy to certificate
+// Adjuntar política al certificado
 new aws.iot.PolicyAttachment("policy-cert-attachment", {
   policy: iotPolicy.name,
   target: iotCertificate.arn,
 });
 
 // ============================================
-// 7. IoT Rules - Route to Lambda
+// 7. Reglas IoT - Enrutar a Lambda
 // ============================================
 
-// IAM Role for IoT Rule
+// Rol IAM para Regla IoT
 const iotRuleRole = new aws.iam.Role("iot-rule-role", {
   assumeRolePolicy: JSON.stringify({
     Version: "2012-10-17",
@@ -305,7 +305,7 @@ new aws.iam.RolePolicy("iot-rule-policy", {
   ),
 });
 
-// Rule 1: Process Telemetry
+// Regla 1: Procesar Telemetría
 const telemetryRule = new aws.iot.TopicRule("process-telemetry-rule", {
   name: "ProcessTelemetryRule",
   enabled: true,
@@ -316,7 +316,7 @@ const telemetryRule = new aws.iot.TopicRule("process-telemetry-rule", {
   }],
 });
 
-// Grant IoT permission to invoke Lambda
+// Otorgar permiso a IoT para invocar Lambda
 new aws.lambda.Permission("iot-invoke-telemetry-lambda", {
   action: "lambda:InvokeFunction",
   function: lambdaFunction.name,
@@ -324,7 +324,7 @@ new aws.lambda.Permission("iot-invoke-telemetry-lambda", {
   sourceArn: telemetryRule.arn,
 });
 
-// Rule 2: Process Alerts
+// Regla 2: Procesar Alertas
 const alertsRule = new aws.iot.TopicRule("process-alerts-rule", {
   name: "ProcessAlertsRule",
   enabled: true,
@@ -342,7 +342,7 @@ new aws.lambda.Permission("iot-invoke-alerts-lambda", {
   sourceArn: alertsRule.arn,
 });
 
-// Rule 3: High Severity Alerts to SNS (optional)
+// Regla 3: Alertas de Alta Severidad a SNS (opcional)
 if (enableSNS && snsTopic) {
   new aws.iot.TopicRule("high-alerts-sns-rule", {
     name: "HighAlertsSNSRule",
@@ -371,10 +371,10 @@ if (enableSNS && snsTopic) {
 }
 
 // ============================================
-// 8. CloudWatch Metrics & Alarms
+// 8. Métricas y Alarmas CloudWatch
 // ============================================
 
-// Custom metric alarm for Lambda errors
+// Alarma de métrica personalizada para errores Lambda
 new aws.cloudwatch.MetricAlarm("lambda-error-alarm", {
   name: "ProcessTelemetry-HighErrorRate",
   comparisonOperator: "GreaterThanThreshold",
@@ -397,7 +397,7 @@ new aws.cloudwatch.MetricAlarm("lambda-error-alarm", {
 // 9. API Gateway - REST API
 // ============================================
 
-// Lambda function for API queries
+// Función Lambda para consultas API
 const apiLambda = new aws.lambda.Function("api-query", {
   name: "GreenhouseAPI",
   runtime: "nodejs20.x",
@@ -419,7 +419,7 @@ const apiLambda = new aws.lambda.Function("api-query", {
   },
 });
 
-// API Gateway REST API
+// REST API de API Gateway
 const api = new aws.apigateway.RestApi("greenhouse-api", {
   name: "GreenhouseAPI",
   description: "REST API for Smart Greenhouse",
@@ -428,7 +428,7 @@ const api = new aws.apigateway.RestApi("greenhouse-api", {
   },
 });
 
-// /health resource
+// Recurso /health
 const healthResource = new aws.apigateway.Resource("health-resource", {
   restApi: api.id,
   parentId: api.rootResourceId,
@@ -451,7 +451,7 @@ const healthIntegration = new aws.apigateway.Integration("health-integration", {
   uri: apiLambda.invokeArn,
 });
 
-// /zones resource
+// Recurso /zones
 const zonesResource = new aws.apigateway.Resource("zones-resource", {
   restApi: api.id,
   parentId: api.rootResourceId,
@@ -474,7 +474,7 @@ const zonesIntegration = new aws.apigateway.Integration("zones-integration", {
   uri: apiLambda.invokeArn,
 });
 
-// /alerts resource
+// Recurso /alerts
 const alertsResource = new aws.apigateway.Resource("alerts-resource", {
   restApi: api.id,
   parentId: api.rootResourceId,
@@ -497,7 +497,7 @@ const alertsIntegration = new aws.apigateway.Integration("alerts-integration", {
   uri: apiLambda.invokeArn,
 });
 
-// Lambda permission for API Gateway
+// Permiso Lambda para API Gateway
 const apiLambdaPermission = new aws.lambda.Permission("api-lambda-permission", {
   action: "lambda:InvokeFunction",
   function: apiLambda.name,
@@ -505,7 +505,7 @@ const apiLambdaPermission = new aws.lambda.Permission("api-lambda-permission", {
   sourceArn: pulumi.interpolate`${api.executionArn}/*/*`,
 });
 
-// API Deployment
+// Despliegue de API
 const deployment = new aws.apigateway.Deployment("api-deployment", {
   restApi: api.id,
   stageName: "prod",
@@ -518,10 +518,10 @@ const deployment = new aws.apigateway.Deployment("api-deployment", {
 });
 
 // ============================================
-// 10. S3 Website Hosting - Dashboard
+// 10. Alojamiento Web S3 - Dashboard
 // ============================================
 
-// S3 Bucket for static website hosting
+// Bucket S3 para alojamiento de sitio web estático
 const dashboardBucket = new aws.s3.Bucket("greenhouse-dashboard", {
   website: {
     indexDocument: "index.html",
@@ -534,16 +534,16 @@ const dashboardBucket = new aws.s3.Bucket("greenhouse-dashboard", {
   },
 });
 
-// Block public access configuration (allow public read for website)
+// Configuración de bloqueo de acceso público (permitir lectura pública para sitio web)
 const dashboardPublicAccess = new aws.s3.BucketPublicAccessBlock("dashboard-public-access", {
   bucket: dashboardBucket.id,
-  blockPublicAcls: true,  // Block ACLs but allow bucket policies
-  blockPublicPolicy: false,  // Allow public bucket policies
+  blockPublicAcls: true,  // Bloquear ACLs pero permitir políticas de bucket
+  blockPublicPolicy: false,  // Permitir políticas de bucket públicas
   ignorePublicAcls: true,
   restrictPublicBuckets: false,
 });
 
-// Bucket policy to allow public read access
+// Política de bucket para permitir acceso de lectura público
 const dashboardBucketPolicy = new aws.s3.BucketPolicy("dashboard-bucket-policy", {
   bucket: dashboardBucket.bucket,
   policy: dashboardBucket.arn.apply(arn =>
@@ -559,7 +559,7 @@ const dashboardBucketPolicy = new aws.s3.BucketPolicy("dashboard-bucket-policy",
   ),
 }, { dependsOn: [dashboardPublicAccess] });
 
-// Upload dashboard files to S3 (without ACLs - use bucket policy instead)
+// Subir archivos del dashboard a S3 (sin ACLs - usar política de bucket en su lugar)
 const indexHtml = new aws.s3.BucketObject("index.html", {
   bucket: dashboardBucket.bucket,
   source: new pulumi.asset.FileAsset("../web-dashboard/index.html"),
@@ -579,7 +579,7 @@ const stylesCss = new aws.s3.BucketObject("styles.css", {
 }, { dependsOn: [dashboardBucketPolicy] });
 
 // ============================================
-// 11. CloudWatch Dashboard (Optional)
+// 11. Dashboard CloudWatch (Opcional)
 // ============================================
 
 const cloudwatchDashboard = new aws.cloudwatch.Dashboard("greenhouse-dashboard", {
@@ -651,15 +651,15 @@ const cloudwatchDashboard = new aws.cloudwatch.Dashboard("greenhouse-dashboard",
 });
 
 // ============================================
-// 12. Outputs
+// 12. Salidas
 // ============================================
 
-// Get IoT endpoint
+// Obtener endpoint IoT
 const iotEndpoint = aws.iot.getEndpoint({
   endpointType: "iot:Data-ATS",
 });
 
-// Export outputs
+// Exportar salidas
 export const iotEndpointAddress = iotEndpoint.then(e => e.endpointAddress);
 export const certificatePem = iotCertificate.certificatePem;
 export const privateKey = iotCertificate.privateKey;
@@ -676,7 +676,7 @@ export const dashboardUrl = pulumi.interpolate`http://${dashboardBucket.websiteE
 export const dashboardBucketName = dashboardBucket.bucket;
 export const cloudwatchDashboardUrl = pulumi.interpolate`https://console.aws.amazon.com/cloudwatch/home?region=${currentRegion.then(r => r.name)}#dashboards:name=SmartGreenhouse-Monitoring`;
 
-// Instructions
+// Instrucciones
 export const setupInstructions = pulumi.interpolate`
 ========================================
 DEPLOYMENT COMPLETE
