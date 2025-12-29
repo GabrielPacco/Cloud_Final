@@ -12,12 +12,28 @@
     <header>
       <div class="header-content">
         <div class="header-left">
-          <h1>🌱 Invernadero Inteligente</h1>
+          <h1>
+            <svg class="icon-lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2z"/>
+              <path d="M12 6v12M8 10h8M8 14h8"/>
+            </svg>
+            Invernadero Inteligente
+          </h1>
           <p class="subtitle">Sistema de Monitoreo IoT en Tiempo Real</p>
         </div>
         <div class="header-right">
-          <button id="theme-toggle" class="icon-btn" title="Cambiar tema">🌓</button>
-          <button id="config-btn" class="icon-btn" title="Configuración">⚙️</button>
+          <button id="theme-toggle" class="icon-btn" title="Cambiar tema">
+            <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+            </svg>
+          </button>
+          <button id="config-btn" class="icon-btn" title="Configuración">
+            <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
+              <path d="M4.22 4.22l4.24 4.24m5.66 5.66l4.24 4.24M4.22 19.78l4.24-4.24m5.66-5.66l4.24-4.24"/>
+            </svg>
+          </button>
         </div>
       </div>
     </header>
@@ -25,28 +41,40 @@
     <!-- Status Bar -->
     <div class="status-bar">
       <div class="status-item">
-        <span class="status-icon">🔌</span>
+        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
         <div>
           <div class="status-label">Estado del Sistema</div>
           <div id="api-status" class="status-value">Conectando...</div>
         </div>
       </div>
       <div class="status-item">
-        <span class="status-icon">🕐</span>
+        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
         <div>
           <div class="status-label">Última Actualización</div>
           <div id="last-update" class="status-value">-</div>
         </div>
       </div>
       <div class="status-item">
-        <span class="status-icon">📊</span>
+        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 3v18h18"/>
+          <path d="M18 17V9M13 17V5M8 17v-3"/>
+        </svg>
         <div>
           <div class="status-label">Zonas Activas</div>
           <div id="active-zones" class="status-value">-</div>
         </div>
       </div>
       <div class="status-item">
-        <span class="status-icon">🚨</span>
+        <svg class="status-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+          <line x1="12" y1="9" x2="12" y2="13"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
         <div>
           <div class="status-label">Alertas Activas</div>
           <div id="alert-count" class="status-value">-</div>
@@ -60,28 +88,54 @@
       <section class="stats-section">
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-icon temp">🌡️</div>
+            <div class="stat-icon temp">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/>
+              </svg>
+            </div>
             <div class="stat-content">
               <div class="stat-label">Temperatura Promedio</div>
               <div id="avg-temp" class="stat-value">--°C</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon humidity">💧</div>
+            <div class="stat-icon humidity">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+              </svg>
+            </div>
             <div class="stat-content">
               <div class="stat-label">Humedad Promedio</div>
               <div id="avg-humidity" class="stat-value">--%</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon soil">🌱</div>
+            <div class="stat-icon soil">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 2v20M2 12h20"/>
+                <path d="M12 12c2-3 4-4 6-4s4 1 4 4-2 6-4 6-4-1-6-4z"/>
+                <path d="M12 12c-2-3-4-4-6-4s-4 1-4 4 2 6 4 6 4-1 6-4z"/>
+              </svg>
+            </div>
             <div class="stat-content">
               <div class="stat-label">Humedad Suelo Promedio</div>
               <div id="avg-soil" class="stat-value">--%</div>
             </div>
           </div>
           <div class="stat-card">
-            <div class="stat-icon light">☀️</div>
+            <div class="stat-icon light">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"/>
+                <line x1="12" y1="1" x2="12" y2="3"/>
+                <line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1" y1="12" x2="3" y2="12"/>
+                <line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+              </svg>
+            </div>
             <div class="stat-content">
               <div class="stat-label">Intensidad de Luz Promedio</div>
               <div id="avg-light" class="stat-value">-- lux</div>
@@ -93,9 +147,20 @@
       <!-- Zones Section -->
       <section class="zones-section">
         <div class="section-header">
-          <h2>📊 Monitoreo por Zonas</h2>
+          <h2>
+            <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3v18h18"/>
+              <path d="M18 17V9M13 17V5M8 17v-3"/>
+            </svg>
+            Monitoreo por Zonas
+          </h2>
           <button id="refresh-btn" class="refresh-btn">
-            <span class="refresh-icon">🔄</span> Actualizar
+            <svg class="refresh-icon icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Actualizar
           </button>
         </div>
         <div id="zones-container" class="zones-grid">
@@ -118,7 +183,14 @@
       <!-- Alerts Section -->
       <section class="alerts-section">
         <div class="section-header">
-          <h2>🚨 Registro de Alertas</h2>
+          <h2>
+            <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Registro de Alertas
+          </h2>
           <div class="alert-filters">
             <button class="filter-btn active" data-filter="ALL">Todas</button>
             <button class="filter-btn" data-filter="HIGH">Alta</button>
@@ -148,14 +220,21 @@
   <div id="config-modal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>⚙️ Configuración del Dashboard</h3>
+        <h3>
+          <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
+            <path d="M4.22 4.22l4.24 4.24m5.66 5.66l4.24 4.24M4.22 19.78l4.24-4.24m5.66-5.66l4.24-4.24"/>
+          </svg>
+          Configuración del Dashboard
+        </h3>
         <button class="close-modal">×</button>
       </div>
       <div class="modal-body">
         <p>Configura la URL de tu API Gateway para conectar con el backend:</p>
         <input type="text" id="api-url-input" placeholder="https://xxxxx.execute-api.us-east-1.amazonaws.com/prod">
         <div class="help-text">
-          <strong>💡 Obtener URL:</strong>
+          <strong>Obtener URL:</strong>
           <code>cd pulumi-infra && pulumi stack output apiUrl</code>
         </div>
       </div>

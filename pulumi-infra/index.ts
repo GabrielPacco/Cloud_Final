@@ -535,11 +535,11 @@ const dashboardBucket = new aws.s3.Bucket("greenhouse-dashboard", {
 });
 
 // Block public access configuration (allow public read for website)
-new aws.s3.BucketPublicAccessBlock("dashboard-public-access", {
+const dashboardPublicAccess = new aws.s3.BucketPublicAccessBlock("dashboard-public-access", {
   bucket: dashboardBucket.id,
-  blockPublicAcls: false,
-  blockPublicPolicy: false,
-  ignorePublicAcls: false,
+  blockPublicAcls: true,  // Block ACLs but allow bucket policies
+  blockPublicPolicy: false,  // Allow public bucket policies
+  ignorePublicAcls: true,
   restrictPublicBuckets: false,
 });
 
@@ -557,29 +557,26 @@ const dashboardBucketPolicy = new aws.s3.BucketPolicy("dashboard-bucket-policy",
       }],
     })
   ),
-});
+}, { dependsOn: [dashboardPublicAccess] });
 
-// Upload dashboard files to S3
+// Upload dashboard files to S3 (without ACLs - use bucket policy instead)
 const indexHtml = new aws.s3.BucketObject("index.html", {
   bucket: dashboardBucket.bucket,
   source: new pulumi.asset.FileAsset("../web-dashboard/index.html"),
   contentType: "text/html",
-  acl: "public-read",
-});
+}, { dependsOn: [dashboardBucketPolicy] });
 
 const appJs = new aws.s3.BucketObject("app.js", {
   bucket: dashboardBucket.bucket,
   source: new pulumi.asset.FileAsset("../web-dashboard/app.js"),
   contentType: "application/javascript",
-  acl: "public-read",
-});
+}, { dependsOn: [dashboardBucketPolicy] });
 
 const stylesCss = new aws.s3.BucketObject("styles.css", {
   bucket: dashboardBucket.bucket,
   source: new pulumi.asset.FileAsset("../web-dashboard/styles.css"),
   contentType: "text/css",
-  acl: "public-read",
-});
+}, { dependsOn: [dashboardBucketPolicy] });
 
 // ============================================
 // 11. CloudWatch Dashboard (Optional)

@@ -87,7 +87,29 @@ function toggleTheme() {
  * Actualizar icono de tema
  */
 function updateThemeIcon(theme) {
-  themeToggle.textContent = theme === 'dark' ? '☀️' : '🌓';
+  if (theme === 'dark') {
+    // Sun icon for dark mode
+    themeToggle.innerHTML = `
+      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/>
+        <line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/>
+        <line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg>
+    `;
+  } else {
+    // Moon icon for light mode
+    themeToggle.innerHTML = `
+      <svg class="icon-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+      </svg>
+    `;
+  }
   themeToggle.title = theme === 'dark' ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro';
 }
 
@@ -157,7 +179,7 @@ async function loadData() {
     updateStatistics(zonesData);
 
     // Update status bar
-    apiStatus.textContent = 'Conectado ✓';
+    apiStatus.textContent = 'Conectado';
     apiStatus.style.color = '#28a745';
     lastUpdate.textContent = new Date().toLocaleTimeString('es-ES');
 
@@ -179,7 +201,7 @@ async function loadData() {
 
   } catch (error) {
     console.error('Error al cargar datos:', error);
-    apiStatus.textContent = 'Error de conexión ✗';
+    apiStatus.textContent = 'Error de conexión';
     apiStatus.style.color = '#dc3545';
     activeZones.textContent = '-';
     alertCount.textContent = '-';
@@ -187,7 +209,7 @@ async function loadData() {
     // Mostrar mensaje de error
     zonesContainer.innerHTML = `
       <div class="error">
-        <strong>❌ Error al cargar datos</strong><br>
+        <strong>Error al cargar datos</strong><br>
         ${error.message}<br><br>
         <button onclick="showConfigModal()" class="btn-primary">Configurar API</button>
       </div>
@@ -317,7 +339,10 @@ function renderZones(zones) {
           ${metrics.temperature ? `
             <div class="metric">
               <div class="metric-label">
-                <span class="metric-icon">🌡️</span> Temperatura
+                <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/>
+                </svg>
+                Temperatura
               </div>
               <div class="metric-value">${metrics.temperature.avg}°C</div>
               <div class="metric-range">
@@ -329,7 +354,10 @@ function renderZones(zones) {
           ${metrics.humidity ? `
             <div class="metric">
               <div class="metric-label">
-                <span class="metric-icon">💧</span> Humedad
+                <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                </svg>
+                Humedad
               </div>
               <div class="metric-value">${metrics.humidity.avg}%</div>
               <div class="metric-range">
@@ -341,7 +369,12 @@ function renderZones(zones) {
           ${metrics.soilMoisture ? `
             <div class="metric">
               <div class="metric-label">
-                <span class="metric-icon">🌱</span> Suelo
+                <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M2 12h20"/>
+                  <path d="M12 12c2-3 4-4 6-4s4 1 4 4-2 6-4 6-4-1-6-4z"/>
+                  <path d="M12 12c-2-3-4-4-6-4s-4 1-4 4 2 6 4 6 4-1 6-4z"/>
+                </svg>
+                Suelo
               </div>
               <div class="metric-value">${metrics.soilMoisture.avg}%</div>
               <div class="metric-range">
@@ -353,7 +386,18 @@ function renderZones(zones) {
           ${metrics.lightIntensity ? `
             <div class="metric">
               <div class="metric-label">
-                <span class="metric-icon">☀️</span> Luz
+                <svg class="metric-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5"/>
+                  <line x1="12" y1="1" x2="12" y2="3"/>
+                  <line x1="12" y1="21" x2="12" y2="23"/>
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                  <line x1="1" y1="12" x2="3" y2="12"/>
+                  <line x1="21" y1="12" x2="23" y2="12"/>
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                Luz
               </div>
               <div class="metric-value">${Math.round(metrics.lightIntensity.avg)}</div>
               <div class="metric-range">
@@ -408,9 +452,28 @@ function renderAlerts(alerts) {
       </div>
       <div class="alert-message">${alert.message}</div>
       <div class="alert-meta">
-        <span>🕐 ${new Date(alert.timestamp).toLocaleString('es-ES')}</span>
-        ${alert.actionTaken ? `<span>⚙️ Acción: ${alert.actionTaken}</span>` : ''}
-        ${alert.value !== undefined ? `<span>📊 Valor: ${alert.value}</span>` : ''}
+        <span>
+          <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          ${new Date(alert.timestamp).toLocaleString('es-ES')}
+        </span>
+        ${alert.actionTaken ? `<span>
+          <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M12 1v6m0 6v6M1 12h6m6 0h6"/>
+            <path d="M4.22 4.22l4.24 4.24m5.66 5.66l4.24 4.24M4.22 19.78l4.24-4.24m5.66-5.66l4.24-4.24"/>
+          </svg>
+          Acción: ${alert.actionTaken}
+        </span>` : ''}
+        ${alert.value !== undefined ? `<span>
+          <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 3v18h18"/>
+            <path d="M18 17V9M13 17V5M8 17v-3"/>
+          </svg>
+          Valor: ${alert.value}
+        </span>` : ''}
       </div>
     </div>
   `).join('');
@@ -423,14 +486,32 @@ function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
 
-  const icon = {
-    success: '✓',
-    error: '✗',
-    info: 'ℹ',
-    warning: '⚠'
-  }[type] || 'ℹ';
+  const iconSVG = {
+    success: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>`,
+    error: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="15" y1="9" x2="9" y2="15"/>
+      <line x1="9" y1="9" x2="15" y2="15"/>
+    </svg>`,
+    info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>`,
+    warning: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>`
+  }[type] || `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="16" x2="12" y2="12"/>
+      <line x1="12" y1="8" x2="12.01" y2="8"/>
+    </svg>`;
 
-  toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
+  toast.innerHTML = `<span class="toast-icon">${iconSVG}</span><span>${message}</span>`;
 
   const container = document.getElementById('toast-container');
   container.appendChild(toast);

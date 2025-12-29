@@ -87,19 +87,33 @@ async function handleGetZones(headers) {
 
     const response = await docClient.send(new QueryCommand({
       TableName: DYNAMODB_TABLE,
-      KeyConditionExpression: "PK = :pk AND begins_with(SK, :sk)",
+      KeyConditionExpression: "PK = :pk AND SK = :sk",
       ExpressionAttributeValues: {
         ":pk": pk,
-        ":sk": "CURRENT#",
+        ":sk": "CURRENT",
       },
       Limit: 1,
       ScanIndexForward: false,
     }));
 
     if (response.Items && response.Items.length > 0) {
+      const item = response.Items[0];
+
+      // Parse metrics if it's a JSON string
+      let metrics = item.metrics;
+      if (typeof metrics === 'string') {
+        try {
+          metrics = JSON.parse(metrics);
+        } catch (e) {
+          console.error(`Error parsing metrics for zone ${zone}:`, e);
+          metrics = null;
+        }
+      }
+
       results.push({
         zone,
-        ...response.Items[0],
+        ...item,
+        metrics, // Override with parsed metrics
       });
     } else {
       results.push({
