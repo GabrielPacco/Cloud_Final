@@ -50,8 +50,5 @@ temp/
 # Evidence/screenshots (optional, depends on repo policy)
 evidencias/
 
-# Documentation (excluded from repo)
-docs/
-
 # Claude Code
 .claude/
