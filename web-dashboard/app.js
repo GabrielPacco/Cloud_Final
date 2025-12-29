@@ -346,7 +346,7 @@ function renderZones(zones) {
               </div>
               <div class="metric-value">${metrics.temperature.avg}°C</div>
               <div class="metric-range">
-                Min: ${metrics.temperature.min}°C | Max: ${metrics.temperature.max}°C
+                Mín: ${metrics.temperature.min}°C | Máx: ${metrics.temperature.max}°C
               </div>
             </div>
           ` : ''}
@@ -361,7 +361,7 @@ function renderZones(zones) {
               </div>
               <div class="metric-value">${metrics.humidity.avg}%</div>
               <div class="metric-range">
-                Min: ${metrics.humidity.min}% | Max: ${metrics.humidity.max}%
+                Mín: ${metrics.humidity.min}% | Máx: ${metrics.humidity.max}%
               </div>
             </div>
           ` : ''}
@@ -378,7 +378,7 @@ function renderZones(zones) {
               </div>
               <div class="metric-value">${metrics.soilMoisture.avg}%</div>
               <div class="metric-range">
-                Min: ${metrics.soilMoisture.min}% | Max: ${metrics.soilMoisture.max}%
+                Mín: ${metrics.soilMoisture.min}% | Máx: ${metrics.soilMoisture.max}%
               </div>
             </div>
           ` : ''}
