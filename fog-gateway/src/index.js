@@ -177,10 +177,27 @@ if (require.main === module) {
   // Iniciar gateway
   gateway.start();
 
-  // Ejemplo: Inyectar anomalía después de 30 segundos (para pruebas)
+  // Ejemplo: Inyectar anomalía HIGH después de 30 segundos (para pruebas SNS)
   setTimeout(() => {
-    console.log('\n[FogGateway] === INJECTING TEST ANOMALY ===\n');
-    gateway.injectAnomaly('B', 'temperature', 33);
+    console.log('\n[FogGateway] === INJECTING HIGH SEVERITY ANOMALY (3x sustained) ===\n');
+
+    // Primera inyección: temperatura alta
+    gateway.injectAnomaly('B', 'temperature', 31);
+    console.log('[ANOMALY 1/3] temperature=31°C en Zona B');
+
+    // Segunda inyección después de 6 segundos
+    setTimeout(() => {
+      gateway.injectAnomaly('B', 'temperature', 31);
+      console.log('[ANOMALY 2/3] temperature=31°C en Zona B');
+
+      // Tercera inyección después de otros 6 segundos
+      setTimeout(() => {
+        gateway.injectAnomaly('B', 'temperature', 31);
+        console.log('[ANOMALY 3/3] temperature=31°C en Zona B');
+        console.log('\n✅ Anomalía HIGH inyectada! Espera alerta THRESHOLD_HIGH_SUSTAINED');
+        console.log('📧 Deberías recibir email SNS en: gabriel7dev40@gmail.com\n');
+      }, 6000);
+    }, 6000);
   }, 30000);
 }
 

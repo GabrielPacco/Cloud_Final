@@ -90,7 +90,7 @@ new aws.s3.BucketPublicAccessBlock("greenhouse-history-public-block", {
 });
 
 // ============================================
-// 3. Topic SNS (Opcional) - Alertas de Alta Severidad
+// 3. Topic SNS - Alertas de Alta Severidad
 // ============================================
 
 let snsTopic: aws.sns.Topic | undefined;
