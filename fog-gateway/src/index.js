@@ -1,6 +1,6 @@
 /**
- * Fog Gateway - Main Entry Point
- * Orchestrates sensor simulation, aggregation, anomaly detection, and MQTT publishing
+ * Fog Gateway - Punto de Entrada Principal
+ * Orquesta la simulación de sensores, agregación, detección de anomalías y publicación MQTT
  */
 
 const fs = require('fs');
@@ -13,22 +13,22 @@ const MQTTClient = require('./mqtt-client');
 
 class FogGateway {
   constructor(configPath) {
-    // Load configuration
+    // Cargar configuración
     this.config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     console.log(`[FogGateway] Loaded config for greenhouse ${this.config.greenhouseId}`);
     console.log(`[FogGateway] Zones: ${this.config.zones.join(', ')}`);
 
-    // Initialize components
+    // Inicializar componentes
     this.buffer = new EventBuffer(this.config);
     this.mqtt = new MQTTClient(this.config, this.buffer);
     this.aggregator = new Aggregator(this.config);
     this.anomalyDetector = new AnomalyDetector(this.config, this.aggregator);
     this.sensors = new SensorSimulator(this.config);
 
-    // Wire up event handlers
+    // Configurar manejadores de eventos
     this.setupEventHandlers();
 
-    // Stats
+    // Estadísticas
     this.stats = {
       readingsGenerated: 0,
       aggregatesPublished: 0,
@@ -38,17 +38,17 @@ class FogGateway {
   }
 
   /**
-   * Setup event handlers between components
+   * Configura los manejadores de eventos entre componentes
    */
   setupEventHandlers() {
-    // Sensors -> Aggregator + Anomaly Detector
+    // Sensores -> Agregador + Detector de Anomalías
     this.sensors.onReadings((readings) => {
       this.stats.readingsGenerated += readings.length;
       this.aggregator.processReadings(readings);
       this.anomalyDetector.processReadings(readings);
     });
 
-    // Aggregator -> MQTT
+    // Agregador -> MQTT
     this.aggregator.onAggregates((aggregates) => {
       for (const aggregate of aggregates) {
         this.mqtt.publish('AGGREGATE', aggregate);
@@ -56,7 +56,7 @@ class FogGateway {
       }
     });
 
-    // Anomaly Detector -> MQTT
+    // Detector de Anomalías -> MQTT
     this.anomalyDetector.onAlerts((alerts) => {
       for (const alert of alerts) {
         this.mqtt.publish('ALERT', alert);
@@ -70,30 +70,30 @@ class FogGateway {
   }
 
   /**
-   * Start Fog Gateway
+   * Inicia el Fog Gateway
    */
   start() {
     console.log('\n========================================');
     console.log('  FOG GATEWAY STARTING');
     console.log('========================================\n');
 
-    // Connect to AWS IoT Core
+    // Conectar a AWS IoT Core
     this.mqtt.connect();
 
-    // Start aggregation timer
+    // Iniciar temporizador de agregación
     this.aggregator.start();
 
-    // Start sensor simulation
+    // Iniciar simulación de sensores
     this.sensors.start();
 
-    // Start stats reporter
+    // Iniciar reportador de estadísticas
     this.startStatsReporter();
 
     console.log('\n[FogGateway] All systems operational\n');
   }
 
   /**
-   * Stop Fog Gateway
+   * Detiene el Fog Gateway
    */
   stop() {
     console.log('\n[FogGateway] Shutting down...');
@@ -112,16 +112,16 @@ class FogGateway {
   }
 
   /**
-   * Start periodic stats reporter
+   * Inicia el reportador periódico de estadísticas
    */
   startStatsReporter() {
     this.statsIntervalId = setInterval(() => {
       this.printStats();
-    }, 60000); // Every 60 seconds
+    }, 60000); // Cada 60 segundos
   }
 
   /**
-   * Print statistics
+   * Imprime estadísticas
    */
   printStats() {
     const uptime = Math.round((Date.now() - this.stats.startTime) / 1000);
@@ -148,7 +148,7 @@ class FogGateway {
   }
 
   /**
-   * Inject anomaly for testing
+   * Inyecta anomalía para pruebas
    */
   injectAnomaly(zone, metric, value) {
     this.sensors.injectAnomaly(zone, metric, value);
@@ -156,12 +156,12 @@ class FogGateway {
   }
 }
 
-// Main execution
+// Ejecución principal
 if (require.main === module) {
   const configPath = path.join(__dirname, '..', 'config.json');
   const gateway = new FogGateway(configPath);
 
-  // Handle graceful shutdown
+  // Manejar apagado gracioso
   process.on('SIGINT', () => {
     console.log('\n[FogGateway] Received SIGINT');
     gateway.stop();
@@ -174,10 +174,10 @@ if (require.main === module) {
     process.exit(0);
   });
 
-  // Start gateway
+  // Iniciar gateway
   gateway.start();
 
-  // Example: Inject anomaly after 30 seconds (for testing)
+  // Ejemplo: Inyectar anomalía después de 30 segundos (para pruebas)
   setTimeout(() => {
     console.log('\n[FogGateway] === INJECTING TEST ANOMALY ===\n');
     gateway.injectAnomaly('B', 'temperature', 33);

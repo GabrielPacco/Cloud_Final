@@ -1,5 +1,5 @@
 /**
- * Buffer - Local persistence for offline/retry scenarios
+ * Buffer - Persistencia local para escenarios offline/reintento
  */
 
 const Database = require('better-sqlite3');
@@ -12,7 +12,7 @@ class EventBuffer {
     this.retryDelays = config.buffer.retryDelayMs;
     this.maxBufferSize = config.buffer.maxBufferSize;
 
-    // Initialize SQLite database
+    // Inicializar base de datos SQLite
     const dbPath = path.join(__dirname, '..', 'buffer.db');
     this.db = new Database(dbPath);
 
@@ -20,7 +20,7 @@ class EventBuffer {
   }
 
   /**
-   * Initialize database schema
+   * Inicializa el esquema de la base de datos
    */
   initDatabase() {
     this.db.exec(`
@@ -41,7 +41,7 @@ class EventBuffer {
   }
 
   /**
-   * Add event to buffer
+   * Añade un evento al buffer
    */
   add(eventType, payload) {
     try {
@@ -67,7 +67,7 @@ class EventBuffer {
   }
 
   /**
-   * Get events ready for retry
+   * Obtiene eventos listos para reintento
    */
   getReadyEvents(limit = 100) {
     try {
@@ -95,7 +95,7 @@ class EventBuffer {
   }
 
   /**
-   * Mark event as successfully sent (delete from buffer)
+   * Marca evento como enviado exitosamente (elimina del buffer)
    */
   markSuccess(eventId) {
     try {
@@ -109,7 +109,7 @@ class EventBuffer {
   }
 
   /**
-   * Mark event as failed (increment retry count, schedule next retry)
+   * Marca evento como fallido (incrementa contador de reintentos, programa siguiente reintento)
    */
   markFailed(eventId, error) {
     try {
@@ -121,20 +121,20 @@ class EventBuffer {
         WHERE id = ?
       `);
 
-      // Get current retry count
+      // Obtener contador de reintentos actual
       const event = this.db.prepare('SELECT retry_count FROM events WHERE id = ?').get(eventId);
       if (!event) return false;
 
       const retryCount = event.retry_count;
 
       if (retryCount >= this.maxRetries) {
-        // Max retries reached, delete event
+        // Reintentos máximos alcanzados, eliminar evento
         console.error(`[Buffer] Event ${eventId} exceeded max retries, deleting`);
         this.db.prepare('DELETE FROM events WHERE id = ?').run(eventId);
         return false;
       }
 
-      // Calculate next retry time with exponential backoff
+      // Calcular tiempo del siguiente reintento con backoff exponencial
       const delay = this.retryDelays[Math.min(retryCount, this.retryDelays.length - 1)];
       const nextRetryAt = Date.now() + delay;
 
@@ -147,7 +147,7 @@ class EventBuffer {
   }
 
   /**
-   * Get buffer statistics
+   * Obtiene estadísticas del buffer
    */
   getStats() {
     try {
@@ -174,7 +174,7 @@ class EventBuffer {
   }
 
   /**
-   * Count total events in buffer
+   * Cuenta el total de eventos en el buffer
    */
   count() {
     try {
@@ -187,7 +187,7 @@ class EventBuffer {
   }
 
   /**
-   * Delete oldest events
+   * Elimina los eventos más antiguos
    */
   deleteOldest(n) {
     try {
@@ -206,7 +206,7 @@ class EventBuffer {
   }
 
   /**
-   * Clear all events (for testing)
+   * Limpia todos los eventos (para pruebas)
    */
   clear() {
     try {
@@ -218,7 +218,7 @@ class EventBuffer {
   }
 
   /**
-   * Close database
+   * Cierra la base de datos
    */
   close() {
     this.db.close();

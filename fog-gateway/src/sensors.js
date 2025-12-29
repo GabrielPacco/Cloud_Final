@@ -1,5 +1,5 @@
 /**
- * Sensor Simulator - Generates realistic sensor readings
+ * Simulador de Sensores - Genera lecturas realistas de sensores
  */
 
 class SensorSimulator {
@@ -8,13 +8,13 @@ class SensorSimulator {
     this.zones = config.zones;
     this.metrics = config.sensors.metrics;
     this.intervalMs = config.sensors.readingIntervalMs;
-    this.readings = new Map(); // zone -> metric -> last value
+    this.readings = new Map(); // zona -> métrica -> último valor
     this.listeners = [];
     this.intervalId = null;
   }
 
   /**
-   * Generate a reading with realistic variation (Brownian motion)
+   * Genera una lectura con variación realista (movimiento browniano)
    */
   generateReading(metric, zone) {
     const key = `${zone}-${metric.name}`;
@@ -22,21 +22,21 @@ class SensorSimulator {
 
     let value;
     if (lastValue !== undefined) {
-      // Add random walk with tendency to return to normal
+      // Añadir caminata aleatoria con tendencia a volver a lo normal
       const range = metric.max - metric.min;
       const randomWalk = (Math.random() - 0.5) * (range * 0.05);
       const returnToNormal = (metric.normal - lastValue) * 0.1;
       value = lastValue + randomWalk + returnToNormal;
     } else {
-      // Initial value near normal with small variation
+      // Valor inicial cercano al normal con pequeña variación
       const range = metric.max - metric.min;
       value = metric.normal + (Math.random() - 0.5) * (range * 0.2);
     }
 
-    // Clamp to min/max
+    // Limitar a min/max
     value = Math.max(metric.min, Math.min(metric.max, value));
 
-    // Round based on metric type
+    // Redondear según el tipo de métrica
     if (metric.name === 'lightIntensity') {
       value = Math.round(value);
     } else {
@@ -48,7 +48,7 @@ class SensorSimulator {
   }
 
   /**
-   * Generate readings for all zones and metrics
+   * Genera lecturas para todas las zonas y métricas
    */
   generateAllReadings() {
     const timestamp = new Date().toISOString();
@@ -71,7 +71,7 @@ class SensorSimulator {
   }
 
   /**
-   * Start continuous reading generation
+   * Inicia la generación continua de lecturas
    */
   start() {
     console.log(`[Sensors] Starting simulator with ${this.zones.length} zones, ${this.metrics.length} metrics, interval ${this.intervalMs}ms`);
@@ -81,13 +81,13 @@ class SensorSimulator {
       this.notifyListeners(readings);
     }, this.intervalMs);
 
-    // Generate initial readings immediately
+    // Generar lecturas iniciales inmediatamente
     const readings = this.generateAllReadings();
     this.notifyListeners(readings);
   }
 
   /**
-   * Stop simulator
+   * Detiene el simulador
    */
   stop() {
     if (this.intervalId) {
@@ -98,14 +98,14 @@ class SensorSimulator {
   }
 
   /**
-   * Add listener for new readings
+   * Añade un listener para nuevas lecturas
    */
   onReadings(callback) {
     this.listeners.push(callback);
   }
 
   /**
-   * Notify all listeners
+   * Notifica a todos los listeners
    */
   notifyListeners(readings) {
     for (const listener of this.listeners) {
@@ -118,7 +118,7 @@ class SensorSimulator {
   }
 
   /**
-   * Inject anomaly for testing (override next reading)
+   * Inyecta una anomalía para pruebas (sobrescribe la siguiente lectura)
    */
   injectAnomaly(zone, metric, value) {
     const key = `${zone}-${metric}`;

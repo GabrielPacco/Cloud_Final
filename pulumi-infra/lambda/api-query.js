@@ -1,7 +1,7 @@
 /**
- * Lambda Function - API Query Handler
- * Handles REST API requests for greenhouse data
- * Version: 1.1
+ * Función Lambda - Manejador de Consultas API
+ * Maneja peticiones REST API para datos del invernadero
+ * Versión: 1.1
  */
 
 const { DynamoDBClient } = require("@aws-sdk/client-dynamodb");
@@ -14,7 +14,7 @@ const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE;
 const GREENHOUSE_ID = process.env.GREENHOUSE_ID || "GH01";
 
 /**
- * Main handler
+ * Manejador principal
  */
 exports.handler = async (event) => {
   console.log("API Query Event:", JSON.stringify(event, null, 2));
@@ -24,7 +24,7 @@ exports.handler = async (event) => {
     const method = event.httpMethod || event.requestContext?.http?.method || "GET";
     const pathParams = event.pathParameters || {};
 
-    // CORS headers
+    // Encabezados CORS
     const headers = {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
@@ -32,7 +32,7 @@ exports.handler = async (event) => {
       "Access-Control-Allow-Headers": "Content-Type",
     };
 
-    // Handle OPTIONS for CORS preflight
+    // Manejar OPTIONS para preflight CORS
     if (method === "OPTIONS") {
       return {
         statusCode: 200,
@@ -41,7 +41,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // Route handling
+    // Manejo de rutas
     if (path.includes("/zones")) {
       return await handleGetZones(headers);
     } else if (path.includes("/alerts")) {
@@ -76,7 +76,7 @@ exports.handler = async (event) => {
 };
 
 /**
- * Get current state of all zones
+ * Obtener estado actual de todas las zonas
  */
 async function handleGetZones(headers) {
   const zones = ["A", "B", "C"];
@@ -99,7 +99,7 @@ async function handleGetZones(headers) {
     if (response.Items && response.Items.length > 0) {
       const item = response.Items[0];
 
-      // Parse metrics if it's a JSON string
+      // Parsear metrics si es una cadena JSON
       let metrics = item.metrics;
       if (typeof metrics === 'string') {
         try {
@@ -113,7 +113,7 @@ async function handleGetZones(headers) {
       results.push({
         zone,
         ...item,
-        metrics, // Override with parsed metrics
+        metrics, // Sobrescribir con metrics parseadas
       });
     } else {
       results.push({
@@ -135,13 +135,13 @@ async function handleGetZones(headers) {
 }
 
 /**
- * Get recent alerts
+ * Obtener alertas recientes
  */
 async function handleGetAlerts(headers, zone) {
   let response;
 
   if (zone) {
-    // Get alerts for specific zone
+    // Obtener alertas para una zona específica
     const pk = `GH#${GREENHOUSE_ID}#ZONE#${zone.toUpperCase()}`;
 
     response = await docClient.send(new QueryCommand({
@@ -155,7 +155,7 @@ async function handleGetAlerts(headers, zone) {
       ScanIndexForward: false,
     }));
   } else {
-    // Get all recent alerts using scan (not efficient but works for small datasets)
+    // Obtener todas las alertas recientes usando scan (no eficiente pero funciona para datasets pequeños)
     response = await docClient.send(new ScanCommand({
       TableName: DYNAMODB_TABLE,
       FilterExpression: "begins_with(SK, :sk)",

@@ -1,5 +1,5 @@
 /**
- * MQTT Client - Publishes events to AWS IoT Core
+ * Cliente MQTT - Publica eventos a AWS IoT Core
  */
 
 const awsIot = require('aws-iot-device-sdk');
@@ -16,12 +16,12 @@ class MQTTClient {
   }
 
   /**
-   * Connect to AWS IoT Core
+   * Conecta a AWS IoT Core
    */
   connect() {
     const mqttConfig = this.config.mqtt;
 
-    // Validate certificate files exist
+    // Validar que los archivos de certificados existen
     if (!fs.existsSync(mqttConfig.certPath) ||
         !fs.existsSync(mqttConfig.keyPath) ||
         !fs.existsSync(mqttConfig.caPath)) {
@@ -73,7 +73,7 @@ class MQTTClient {
   }
 
   /**
-   * Start offline mode (no AWS connection)
+   * Inicia el modo offline (sin conexión a AWS)
    */
   startOfflineMode() {
     console.log('[MQTT] Starting in offline mode - all events buffered');
@@ -81,13 +81,13 @@ class MQTTClient {
   }
 
   /**
-   * Publish event to AWS IoT Core
+   * Publica evento a AWS IoT Core
    */
   async publish(eventType, payload) {
     const topic = this.getTopic(eventType);
 
     if (!this.connected) {
-      // Buffer for later retry
+      // Almacenar en buffer para reintento posterior
       console.log(`[MQTT] Offline - buffering ${eventType} event`);
       this.buffer.add(eventType, payload);
       return false;
@@ -105,14 +105,14 @@ class MQTTClient {
       return true;
     } catch (err) {
       console.error(`[MQTT] Publish failed: ${err.message}`);
-      // Buffer for retry
+      // Almacenar en buffer para reintento
       this.buffer.add(eventType, payload);
       return false;
     }
   }
 
   /**
-   * Get topic for event type
+   * Obtiene el topic para el tipo de evento
    */
   getTopic(eventType) {
     const mqttConfig = this.config.mqtt;
@@ -128,7 +128,7 @@ class MQTTClient {
   }
 
   /**
-   * Process buffered events (retry)
+   * Procesa eventos almacenados en buffer (reintento)
    */
   async processBufferedEvents() {
     if (!this.connected) return;
@@ -164,18 +164,18 @@ class MQTTClient {
   }
 
   /**
-   * Start periodic retry timer
+   * Inicia temporizador de reintento periódico
    */
   startRetryTimer() {
     if (this.retryIntervalId) return;
 
     this.retryIntervalId = setInterval(() => {
       this.processBufferedEvents();
-    }, 30000); // Check every 30 seconds
+    }, 30000); // Verificar cada 30 segundos
   }
 
   /**
-   * Stop retry timer
+   * Detiene el temporizador de reintento
    */
   stopRetryTimer() {
     if (this.retryIntervalId) {
@@ -185,7 +185,7 @@ class MQTTClient {
   }
 
   /**
-   * Disconnect
+   * Desconecta
    */
   disconnect() {
     this.stopRetryTimer();
@@ -197,7 +197,7 @@ class MQTTClient {
   }
 
   /**
-   * Get connection status
+   * Obtiene el estado de la conexión
    */
   isConnected() {
     return this.connected;

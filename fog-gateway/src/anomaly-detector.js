@@ -1,5 +1,5 @@
 /**
- * Anomaly Detector - Detects anomalies based on rules
+ * Detector de Anomalías - Detecta anomalías basándose en reglas
  */
 
 class AnomalyDetector {
@@ -9,21 +9,21 @@ class AnomalyDetector {
     this.rules = config.anomalyDetection.rules;
     this.listeners = [];
 
-    // Tracking for sustained anomalies
-    this.sustained = new Map(); // zone-metric -> count
+    // Seguimiento de anomalías sostenidas
+    this.sustained = new Map(); // zona-métrica -> contador
 
-    // Tracking for stuck sensors
-    this.lastValues = new Map(); // zone-metric -> {value, count}
+    // Seguimiento de sensores atascados
+    this.lastValues = new Map(); // zona-métrica -> {valor, contador}
 
-    // Tracking for silent sensors
-    this.lastSeen = new Map(); // zone-metric -> timestamp
+    // Seguimiento de sensores silenciosos
+    this.lastSeen = new Map(); // zona-métrica -> timestamp
 
-    // Actuator states (simulated)
-    this.actuators = new Map(); // zone -> {fan, irrigation, vent, shade}
+    // Estados de actuadores (simulados)
+    this.actuators = new Map(); // zona -> {ventilador, riego, ventilación, sombra}
   }
 
   /**
-   * Process readings and detect anomalies
+   * Procesa las lecturas y detecta anomalías
    */
   processReadings(readings) {
     const now = Date.now();
@@ -33,23 +33,23 @@ class AnomalyDetector {
       const { zone, metric, value, timestamp } = reading;
       const key = `${zone}-${metric}`;
 
-      // Update last seen
+      // Actualizar último visto
       this.lastSeen.set(key, now);
 
-      // Check for stuck sensor
+      // Verificar sensor atascado
       const stuckAlert = this.checkStuck(zone, metric, value);
       if (stuckAlert) alerts.push(stuckAlert);
 
-      // Check threshold rules
+      // Verificar reglas de umbrales
       const thresholdAlerts = this.checkThresholds(zone, metric, value);
       alerts.push(...thresholdAlerts);
     }
 
-    // Check for silent sensors
+    // Verificar sensores silenciosos
     const silentAlerts = this.checkSilent(now);
     alerts.push(...silentAlerts);
 
-    // Execute actions and notify
+    // Ejecutar acciones y notificar
     if (alerts.length > 0) {
       for (const alert of alerts) {
         this.executeAction(alert);
@@ -59,7 +59,7 @@ class AnomalyDetector {
   }
 
   /**
-   * Check if sensor is stuck (same value multiple times)
+   * Verifica si el sensor está atascado (mismo valor múltiples veces)
    */
   checkStuck(zone, metric, value) {
     const key = `${zone}-${metric}`;
@@ -89,7 +89,7 @@ class AnomalyDetector {
   }
 
   /**
-   * Check threshold-based rules
+   * Verifica reglas basadas en umbrales
    */
   checkThresholds(zone, metric, value) {
     const alerts = [];
@@ -130,7 +130,7 @@ class AnomalyDetector {
           deviceId: this.config.mqtt.clientId
         });
       } else if (rule.type === 'THRESHOLD_HIGH_SUSTAINED' && value > rule.threshold) {
-        // Track sustained violations
+        // Rastrear violaciones sostenidas
         const count = (this.sustained.get(key) || 0) + 1;
         this.sustained.set(key, count);
 
@@ -150,11 +150,11 @@ class AnomalyDetector {
             action: rule.action,
             deviceId: this.config.mqtt.clientId
           });
-          // Reset counter after alert
+          // Reiniciar contador después de la alerta
           this.sustained.set(key, 0);
         }
       } else {
-        // Reset sustained counter if threshold not violated
+        // Reiniciar contador sostenido si no se viola el umbral
         if (rule.type === 'THRESHOLD_HIGH_SUSTAINED') {
           this.sustained.set(key, 0);
         }
@@ -165,7 +165,7 @@ class AnomalyDetector {
   }
 
   /**
-   * Check for silent sensors (no data received)
+   * Verifica sensores silenciosos (sin datos recibidos)
    */
   checkSilent(now) {
     const alerts = [];
@@ -185,7 +185,7 @@ class AnomalyDetector {
           message: `Sensor ${metric} silent for ${Math.round((now - lastSeen) / 1000)}s in zone ${zone}`,
           deviceId: this.config.mqtt.clientId
         });
-        // Remove to avoid repeated alerts
+        // Eliminar para evitar alertas repetidas
         this.lastSeen.delete(key);
       }
     }
@@ -194,7 +194,7 @@ class AnomalyDetector {
   }
 
   /**
-   * Execute action (simulated actuators)
+   * Ejecuta acción (actuadores simulados)
    */
   executeAction(alert) {
     if (!alert.action) return;
@@ -214,21 +214,21 @@ class AnomalyDetector {
   }
 
   /**
-   * Get current actuator states
+   * Obtiene los estados actuales de los actuadores
    */
   getActuatorStates() {
     return Object.fromEntries(this.actuators);
   }
 
   /**
-   * Add listener for alerts
+   * Añade un listener para alertas
    */
   onAlerts(callback) {
     this.listeners.push(callback);
   }
 
   /**
-   * Notify all listeners
+   * Notifica a todos los listeners
    */
   notifyListeners(alerts) {
     for (const listener of this.listeners) {

@@ -1,6 +1,6 @@
 /**
- * Lambda Function - Process Telemetry and Alerts
- * Validates, normalizes, and persists events to DynamoDB and S3
+ * Función Lambda - Procesar Telemetría y Alertas
+ * Valida, normaliza y persiste eventos en DynamoDB y S3
  */
 
 const { DynamoDBClient, PutItemCommand, UpdateItemCommand } = require("@aws-sdk/client-dynamodb");
@@ -18,11 +18,11 @@ const S3_BUCKET = process.env.S3_BUCKET;
 const SNS_TOPIC_ARN = process.env.SNS_TOPIC_ARN;
 const GREENHOUSE_ID = process.env.GREENHOUSE_ID || "GH01";
 
-// TTL: 7 days from now
+// TTL: 7 días desde ahora
 const getTTL = () => Math.floor(Date.now() / 1000) + (7 * 24 * 60 * 60);
 
 /**
- * Main handler
+ * Manejador principal
  */
 exports.handler = async (event) => {
   console.log('Received event:', JSON.stringify(event, null, 2));
@@ -31,7 +31,7 @@ exports.handler = async (event) => {
     const payload = event;
     const eventType = payload.eventType;
 
-    // Validate event
+    // Validar evento
     const validationError = validateEvent(payload);
     if (validationError) {
       console.error('Validation failed:', validationError);
@@ -39,14 +39,14 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: validationError };
     }
 
-    // Enrich event
+    // Enriquecer evento
     const enrichedPayload = {
       ...payload,
       receivedAt: new Date().toISOString(),
       processingId: generateId(),
     };
 
-    // Process based on event type
+    // Procesar según el tipo de evento
     if (eventType === 'AGGREGATE') {
       await processAggregate(enrichedPayload);
     } else if (eventType === 'ALERT') {
@@ -69,28 +69,28 @@ exports.handler = async (event) => {
 };
 
 /**
- * Validate event schema
+ * Validar esquema del evento
  */
 function validateEvent(payload) {
-  // Required fields
+  // Campos requeridos
   if (!payload.eventType) return 'Missing eventType';
   if (!payload.greenhouseId) return 'Missing greenhouseId';
   if (!payload.zone) return 'Missing zone';
   if (!payload.timestamp) return 'Missing timestamp';
   if (!payload.deviceId) return 'Missing deviceId';
 
-  // Timestamp validation
+  // Validación de timestamp
   const eventTime = new Date(payload.timestamp).getTime();
   const now = Date.now();
   if (isNaN(eventTime)) return 'Invalid timestamp format';
   if (eventTime > now + 60000) return 'Timestamp is in the future';
 
-  // Type-specific validation
+  // Validación específica por tipo
   if (payload.eventType === 'AGGREGATE') {
     if (!payload.metrics) return 'Missing metrics';
     if (!payload.windowDurationSec) return 'Missing windowDurationSec';
 
-    // Sanity checks for each metric
+    // Verificaciones de cordura para cada métrica
     for (const [metricName, stats] of Object.entries(payload.metrics)) {
       if (stats.min > stats.avg || stats.avg > stats.max) {
         return `Invalid stats for ${metricName}: min=${stats.min}, avg=${stats.avg}, max=${stats.max}`;
@@ -116,12 +116,12 @@ function validateEvent(payload) {
 }
 
 /**
- * Process AGGREGATE event
+ * Procesar evento AGGREGATE
  */
 async function processAggregate(payload) {
   const { greenhouseId, zone, timestamp, metrics } = payload;
 
-  // Update CURRENT state in DynamoDB
+  // Actualizar estado CURRENT en DynamoDB
   const pk = `GH#${greenhouseId}#ZONE#${zone}`;
   const sk = 'CURRENT';
 
@@ -141,7 +141,7 @@ async function processAggregate(payload) {
 
   console.log(`Updated CURRENT state for ${pk}`);
 
-  // Save snapshot to S3 every hour (check timestamp)
+  // Guardar snapshot en S3 cada hora (verificar timestamp)
   const date = new Date(timestamp);
   if (date.getMinutes() === 0) {
     await saveToS3(payload, 'snapshot');
@@ -151,12 +151,12 @@ async function processAggregate(payload) {
 }
 
 /**
- * Process ALERT event
+ * Procesar evento ALERT
  */
 async function processAlert(payload) {
   const { greenhouseId, zone, timestamp, alertType, severity } = payload;
 
-  // Insert alert in DynamoDB
+  // Insertar alerta en DynamoDB
   const pk = `GH#${greenhouseId}#ZONE#${zone}`;
   const sk = `ALERT#${timestamp}`;
 
@@ -181,10 +181,10 @@ async function processAlert(payload) {
 
   console.log(`Inserted alert ${sk} for ${pk}`);
 
-  // Save all alerts to S3
+  // Guardar todas las alertas en S3
   await saveToS3(payload, 'alert');
 
-  // Publish to SNS if HIGH severity
+  // Publicar en SNS si es de severidad HIGH
   if (severity === 'HIGH' && SNS_TOPIC_ARN) {
     await snsClient.send(new PublishCommand({
       TopicArn: SNS_TOPIC_ARN,
@@ -199,7 +199,7 @@ async function processAlert(payload) {
 }
 
 /**
- * Save event to S3
+ * Guardar evento en S3
  */
 async function saveToS3(payload, type) {
   const { greenhouseId, zone, timestamp } = payload;
@@ -225,7 +225,7 @@ async function saveToS3(payload, type) {
 }
 
 /**
- * Put custom CloudWatch metric
+ * Publicar métrica personalizada en CloudWatch
  */
 async function putMetric(metricName, value) {
   try {
@@ -248,7 +248,7 @@ async function putMetric(metricName, value) {
 }
 
 /**
- * Generate unique ID
+ * Generar ID único
  */
 function generateId() {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
